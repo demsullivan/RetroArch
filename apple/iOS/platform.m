@@ -394,7 +394,6 @@ static void handle_touch_event(NSArray* touches)
    NSString* _path;
 
    bool _isGameTop, _isRomList;
-   uint32_t _settingMenusInBackStack;
    uint32_t _enabledOrientations;
 }
 
@@ -509,27 +508,18 @@ static void handle_touch_event(NSArray* touches)
 
    self.navigationBarHidden = _isGameTop;
    [self setToolbarHidden:!_isRomList animated:YES];
-   self.topViewController.navigationItem.rightBarButtonItem = [self createSettingsButton];
 }
 
 // UINavigationController: Never animate when pushing onto, or popping, an RAGameView
 - (void)pushViewController:(UIViewController*)theView animated:(BOOL)animated
 {
    apple_input_reset_icade_buttons();
-
-   if ([theView respondsToSelector:@selector(isSettingsView)] && [(id)theView isSettingsView])
-      _settingMenusInBackStack ++;
-
    [super pushViewController:theView animated:animated && !_isGameTop];
 }
 
 - (UIViewController*)popViewControllerAnimated:(BOOL)animated
 {
    apple_input_reset_icade_buttons();
-
-   if ([self.topViewController respondsToSelector:@selector(isSettingsView)] && [(id)self.topViewController isSettingsView])
-      _settingMenusInBackStack --;
-
    return [super popViewControllerAnimated:animated && !_isGameTop];
 }
 
@@ -618,19 +608,6 @@ static void handle_touch_event(NSArray* touches)
 }
 
 #pragma mark PAUSE MENU
-- (UIBarButtonItem*)createSettingsButton
-{
-   if (_settingMenusInBackStack == 0)
-      return [[UIBarButtonItem alloc]
-            initWithTitle:@"Settings"
-                    style:UIBarButtonItemStyleBordered
-                   target:[RetroArch_iOS get]
-                   action:@selector(showSystemSettings)];
-   
-   else
-      return nil;
-}
-
 - (IBAction)showPauseMenu:(id)sender
 {
    if (apple_is_running && !apple_is_paused && _isGameTop)

@@ -541,11 +541,6 @@ static void bluetooth_option_changed(RASettingData* setting)
    return self;
 }
 
-- (bool)isSettingsView
-{
-   return true;
-}
-
 - (void)handleCustomAction:(RASettingData*)setting
 {
 

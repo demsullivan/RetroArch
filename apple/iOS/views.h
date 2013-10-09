@@ -74,8 +74,6 @@
 @interface RASettingsSubList : RATableViewController
 - (id)initWithSettings:(NSArray*)values title:(NSString*)title;
 - (void)writeSettings:(NSArray*)settingList toConfig:(config_file_t*)config;
-
-- (bool)isSettingsView;
 @end
 
 // settings.m
