@@ -80,5 +80,7 @@
 /*********************************************/
 @interface RAMainMenu : RAMenuBase<RAModuleListDelegate> @end
 
+@interface RACoreSettingsMenu : RAMenuBase @end
+
 #endif
 

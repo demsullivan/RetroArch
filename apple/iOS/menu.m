@@ -108,7 +108,7 @@
    [(id)result.accessoryView addTarget:self action:@selector(handleBooleanSwitch:) forControlEvents:UIControlEventValueChanged];
    
    if (self.setting)
-      [(id)result.accessoryView setOn:*(bool*)self.setting];
+      [(id)result.accessoryView setOn:*self.setting->value.boolean];
    return result;
 }
 
@@ -296,6 +296,46 @@
 - (void)showSettings
 {
    [self.navigationController pushViewController:[RASystemSettingsList new] animated:YES];
+}
+
+@end
+
+@implementation RACoreSettingsMenu
+
+- (id)init
+{
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
+   {
+      setting_data_load_current();
+   
+      self.title = @"Core Settings";
+   
+      self.sections =
+      @[
+         @[
+            @"Video",
+            [RAMenuItemBoolean itemForSetting:"video_smooth"],
+            [RAMenuItemBoolean itemForSetting:"video_crop_overscan"],
+            [RAMenuItemBoolean itemForSetting:"video_scale_integer"]
+            // AR
+         ],
+         
+         @[
+            @"GPU Shader",
+            [RAMenuItemBoolean itemForSetting:"video_shader_enable"],
+            [RAMenuItemPathSetting itemForSetting:"video_shader"]
+         ],
+         
+         @[
+            @"Audio",
+            [RAMenuItemBoolean itemForSetting:"audio_enable"],
+            [RAMenuItemBoolean itemForSetting:"audio_sync"],
+            [RAMenuItemBoolean itemForSetting:"audio_rate_control"]
+         ]
+      ];
+   }
+   
+   return self;
 }
 
 @end
