@@ -181,6 +181,34 @@ bool setting_data_save_config(config_file_t* config)
    return true;
 }
 
+const rarch_setting_t* setting_data_find_setting(const char* name)
+{
+   if (!name)
+      return 0;
+
+   for (const rarch_setting_t* i = setting_data; i->type != ST_NONE; i ++)
+      if (i->type <= ST_GROUP && strcmp(i->name, name) == 0)
+         return i;
+
+   return 0;
+}
+
+void setting_data_set_with_string_representation(const rarch_setting_t* setting, const char* value)
+{
+   if (!setting || !value)
+      return;
+   
+   switch (setting->type)
+   {
+      case ST_INT:    sscanf(value, "%d", (  int*)setting->value); break;
+      case ST_FLOAT:  sscanf(value, "%f", (float*)setting->value); break;
+      case ST_PATH:   strlcpy((char*)setting->value, value, setting->size); break;
+      case ST_STRING: strlcpy((char*)setting->value, value, setting->size); break;
+      
+      default: return;
+   }
+}
+
 const char* setting_data_get_string_representation(const rarch_setting_t* setting, char* buffer, size_t length)
 {
    if (!setting || !buffer || !length)

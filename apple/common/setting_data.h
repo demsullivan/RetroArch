@@ -51,6 +51,9 @@ bool setting_data_load_config(config_file_t* config);
 bool setting_data_save_config_path(const char* path);
 bool setting_data_save_config(config_file_t* config);
 
+const rarch_setting_t* setting_data_find_setting(const char* name);
+
+void setting_data_set_with_string_representation(const rarch_setting_t* setting, const char* value);
 const char* setting_data_get_string_representation(const rarch_setting_t* setting, char* buffer, size_t length);
 
 // Keyboard

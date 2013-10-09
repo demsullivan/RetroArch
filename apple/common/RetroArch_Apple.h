@@ -64,6 +64,11 @@ extern void objc_clear_config_hack();
 extern bool path_make_and_check_directory(const char* path, mode_t mode, int amode);
 extern NSString* objc_get_value_from_config(config_file_t* config, NSString* name, NSString* defaultValue);
 
+// Number formatter class for setting strings
+@interface RANumberFormatter : NSNumberFormatter
+- (id)initWithFloatSupport:(bool)allowFloat minimum:(double)min maximum:(double)max;
+@end
+
 // frontend/platform/platform_apple.c
 extern void apple_frontend_post_event(void (*fn)(void*), void* userdata);
 

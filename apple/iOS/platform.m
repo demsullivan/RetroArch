@@ -20,6 +20,7 @@
 #include "rarch_wrapper.h"
 
 #include "apple/common/apple_input.h"
+#include "apple/common/setting_data.h"
 
 #import "views.h"
 #include "bluetooth/btpad.h"
@@ -27,6 +28,268 @@
 #include "bluetooth/btpad.h"
 
 #include "file.h"
+
+@protocol RAMenuItemBase
+- (UITableViewCell*)cellForTableView:(UITableView*)tableView;
+- (void)wasSelectedOnTableView:(UITableView*)tableView;
+@end
+
+/*********************************************/
+/* RAMenuBase                                */
+/* A menu class that displays RAMenuItemBase */
+/* objects.                                  */
+/*********************************************/
+@interface RAMenuBase : RATableViewController @end
+@implementation RAMenuBase
+
+- (id)initWithStyle:(UITableViewStyle)style
+{
+   return [super initWithStyle:style];
+}
+
+- (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
+{
+   return [[self itemForIndexPath:indexPath] cellForTableView:tableView];
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+   [[self itemForIndexPath:indexPath] wasSelectedOnTableView:tableView];
+}
+
+@end
+
+/*********************************************/
+/* RAMenuItemBasic                           */
+/* A simple menu item that displays a text   */
+/* description and calls a block object when */
+/* selected.                                 */
+/*********************************************/
+@interface RAMenuItemBasic : NSObject<RAMenuItemBase>
+@property (nonatomic) NSString* description;
+@property (nonatomic, strong) void (^action)();
+@end
+
+@implementation RAMenuItemBasic
+
++ (RAMenuItemBasic*)itemWithDescription:(NSString*)description action:(void (^)())action
+{
+   RAMenuItemBasic* item = [RAMenuItemBasic new];
+   item.description = description;
+   item.action = action;
+   return item;
+}
+
+- (UITableViewCell*)cellForTableView:(UITableView*)tableView
+{
+   static NSString* const cell_id = @"text";
+   
+   UITableViewCell* result = [tableView dequeueReusableCellWithIdentifier:cell_id];
+   if (!result)
+      result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
+   
+   result.textLabel.text = self.description;
+   return result;
+}
+
+- (void)wasSelectedOnTableView:(UITableView*)tableView
+{
+   if (self.action)
+      self.action();
+}
+
+@end
+
+/*********************************************/
+/* RAMenuItemBoolean                         */
+/* A simple menu item that displays the      */
+/* state, and allows editing, of a boolean   */
+/* setting.                                  */
+/*********************************************/
+@interface RAMenuItemBoolean : NSObject<RAMenuItemBase>
+@property (nonatomic) const rarch_setting_t* setting;
+@end
+
+@implementation RAMenuItemBoolean
+
++ (RAMenuItemBoolean*)itemForSetting:(const char*)setting_name
+{
+   RAMenuItemBoolean* item = [RAMenuItemBoolean new];
+   item.setting = setting_data_find_setting(setting_name);
+   return item;
+}
+
+- (UITableViewCell*)cellForTableView:(UITableView*)tableView
+{
+   static NSString* const cell_id = @"boolean_setting";
+   
+   UITableViewCell* result = [tableView dequeueReusableCellWithIdentifier:cell_id];
+   if (!result)
+   {
+      result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
+      result.selectionStyle = UITableViewCellSelectionStyleNone;
+      result.accessoryView = [UISwitch new];
+   }
+
+   result.textLabel.text = @(self.setting->short_description);
+   [(id)result.accessoryView removeTarget:nil action:NULL forControlEvents:UIControlEventValueChanged];
+   [(id)result.accessoryView addTarget:self action:@selector(handleBooleanSwitch:) forControlEvents:UIControlEventValueChanged];
+   
+   if (self.setting)
+      [(id)result.accessoryView setOn:*(bool*)self.setting];
+   return result;
+}
+
+- (void)handleBooleanSwitch:(UISwitch*)swt
+{
+   if (self.setting)
+      *(bool*)self.setting->value = swt.on ? true : false;
+}
+
+- (void)wasSelectedOnTableView:(UITableView*)tableView
+{
+}
+
+@end
+
+/*********************************************/
+/* RAMenuItemString                          */
+/* A simple menu item that displays the      */
+/* state, and allows editing, of a string or */
+/* numeric setting.                          */
+/*********************************************/
+@interface RAMenuItemString : NSObject<RAMenuItemBase, UIAlertViewDelegate, UITextFieldDelegate>
+@property (nonatomic) const rarch_setting_t* setting;
+@property (nonatomic) UITableView* parentTable;
+@end
+
+@implementation RAMenuItemString
+
++ (RAMenuItemString*)itemForSetting:(const char*)setting_name
+{
+   RAMenuItemString* item = [RAMenuItemString new];
+   item.setting = setting_data_find_setting(setting_name);
+   return item;
+}
+
+- (UITableViewCell*)cellForTableView:(UITableView*)tableView
+{
+   static NSString* const cell_id = @"string_setting";
+   
+   UITableViewCell* result = [tableView dequeueReusableCellWithIdentifier:cell_id];
+   if (!result)
+   {
+      result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
+      result.selectionStyle = UITableViewCellSelectionStyleNone;
+   }
+
+   char buffer[256];
+   result.textLabel.text = @(self.setting->short_description);
+
+   if (self.setting)
+      result.detailTextLabel.text = @(setting_data_get_string_representation(_setting, buffer, sizeof(buffer)));
+   return result;
+}
+
+- (void)wasSelectedOnTableView:(UITableView*)tableView
+{
+   self.parentTable = tableView;
+
+   UIAlertView* alertView = [[UIAlertView alloc] initWithTitle:@"Enter new value" message:@(_setting->short_description) delegate:self
+                                                  cancelButtonTitle:@"Cancel" otherButtonTitles:@"OK", nil];
+   alertView.alertViewStyle = UIAlertViewStylePlainTextInput;
+
+   UITextField* field = [alertView textFieldAtIndex:0];
+   char buffer[256];
+   
+   field.delegate = self;
+   field.text = @(setting_data_get_string_representation(_setting, buffer, sizeof(buffer)));
+   field.keyboardType = (_setting->type == ST_INT || _setting->type == ST_FLOAT) ? UIKeyboardTypeDecimalPad : UIKeyboardTypeDefault;
+
+   [alertView show];
+}
+
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+{
+   if (_setting->type == ST_INT || _setting->type == ST_FLOAT)
+   {
+      RANumberFormatter* formatter = [[RANumberFormatter alloc] initWithFloatSupport:_setting->type == ST_FLOAT
+                                                                minimum:_setting->min maximum:_setting->max];
+
+      NSString* result = [textField.text stringByReplacingCharactersInRange:range withString:string];
+      return [formatter isPartialStringValid:result newEditingString:nil errorDescription:nil];
+   }
+
+   return YES;
+}
+
+
+- (void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+   NSString* text = [alertView textFieldAtIndex:0].text;
+
+   if (buttonIndex == alertView.firstOtherButtonIndex && text.length)
+   {
+      setting_data_set_with_string_representation(_setting, text.UTF8String);
+      
+      [self.parentTable reloadData];
+      self.parentTable = nil;
+   }
+}
+
+@end
+
+
+/*********************************************/
+/* RAMainMenu                                */
+/* Menu object that is displayed immediately */
+/* after startup.                            */
+/*********************************************/
+@interface RAMainMenu : RAMenuBase @end
+@implementation RAMainMenu
+
+- (id)init
+{
+   if ((self = [super initWithStyle:UITableViewStylePlain]))
+   {
+      self.title = @"RetroArch";
+   
+      self.sections =
+      @[
+         @[
+            @"",
+            [RAMenuItemBasic itemWithDescription:@"Core"                      action:^{ [self selectCore];   }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ [self loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ [self loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [self showSettings]; }],
+            [RAMenuItemBoolean itemForSetting:"video_fullscreen"],
+            [RAMenuItemString itemForSetting:"audio_device"],
+            [RAMenuItemString itemForSetting:"video_monitor_index"]
+         ]
+      ];
+   }
+   
+   return self;
+}
+
+- (void)selectCore
+{
+   printf("HAHA\n");
+}
+
+- (void)loadGame
+{
+   printf("HOHO\n");
+}
+
+- (void)showSettings
+{
+   [self.navigationController pushViewController:[RASystemSettingsList new] animated:YES];
+}
+
+@end
+
 
 //#define HAVE_DEBUG_FILELOG
 bool is_ios_7()

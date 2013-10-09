@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		9605EA9B170288EA001D47B0 /* RAModuleInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = 9605EA9A170288EA001D47B0 /* RAModuleInfo.m */; };
+		961EAC561805C7AE003A94AE /* setting_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 961EAC541805C7AE003A94AE /* setting_data.c */; };
 		962979F616C43B9500E6DCE0 /* ic_dir.png in Resources */ = {isa = PBXBuildFile; fileRef = 962979F416C43B9500E6DCE0 /* ic_dir.png */; };
 		962979F716C43B9500E6DCE0 /* ic_file.png in Resources */ = {isa = PBXBuildFile; fileRef = 962979F516C43B9500E6DCE0 /* ic_file.png */; };
 		96297A0F16C5AEA100E6DCE0 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 96297A0E16C5AEA100E6DCE0 /* main.m */; };
@@ -41,6 +42,8 @@
 /* Begin PBXFileReference section */
 		9605EA99170288EA001D47B0 /* RAModuleInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RAModuleInfo.h; sourceTree = "<group>"; };
 		9605EA9A170288EA001D47B0 /* RAModuleInfo.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RAModuleInfo.m; sourceTree = "<group>"; };
+		961EAC541805C7AE003A94AE /* setting_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = setting_data.c; sourceTree = "<group>"; };
+		961EAC551805C7AE003A94AE /* setting_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = setting_data.h; sourceTree = "<group>"; };
 		962979F416C43B9500E6DCE0 /* ic_dir.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_dir.png; path = "../../android/phoenix/res/drawable-xhdpi/ic_dir.png"; sourceTree = "<group>"; };
 		962979F516C43B9500E6DCE0 /* ic_file.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ic_file.png; path = "../../android/phoenix/res/drawable-xhdpi/ic_file.png"; sourceTree = "<group>"; };
 		96297A0E16C5AEA100E6DCE0 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
@@ -154,6 +157,8 @@
 		96AFAE3316C1D4EA009DE44C /* common */ = {
 			isa = PBXGroup;
 			children = (
+				961EAC541805C7AE003A94AE /* setting_data.c */,
+				961EAC551805C7AE003A94AE /* setting_data.h */,
 				9646869417BBBEAE00C5EA69 /* platform.m */,
 				967894571788EAAE00D6CA69 /* browser.m */,
 				967894581788EAAE00D6CA69 /* RALogView.m */,
@@ -304,6 +309,7 @@
 				963F5AC816CC523B009BBD19 /* RAGameView.m in Sources */,
 				D48581DE16F823F9004BEB17 /* griffin.c in Sources */,
 				9605EA9B170288EA001D47B0 /* RAModuleInfo.m in Sources */,
+				961EAC561805C7AE003A94AE /* setting_data.c in Sources */,
 				96337E82176AC6E5004685F3 /* utility.m in Sources */,
 				9678945B1788EAAE00D6CA69 /* browser.m in Sources */,
 				9678945C1788EAAE00D6CA69 /* RALogView.m in Sources */,

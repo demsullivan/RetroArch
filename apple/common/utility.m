@@ -71,6 +71,45 @@ bool path_make_and_check_directory(const char* path, mode_t mode, int amode)
    return access(path, amode) == 0;
 }
 
+// Number formatter class for setting strings
+@implementation RANumberFormatter
+- (id)initWithFloatSupport:(bool)allowFloat minimum:(double)min maximum:(double)max
+{
+   self = [super init];
+   self.allowsFloats = allowFloat;
+   self.maximumFractionDigits = 10;
+   
+   if (min || max)
+   {
+      self.minimum = @(min);
+      self.maximum = @(max);
+   }
+   
+   return self;
+}
+
+- (BOOL)isPartialStringValid:(NSString*)partialString newEditingString:(NSString**)newString errorDescription:(NSString**)error
+{
+   bool hasDot = false;
+
+   if (partialString.length)
+      for (int i = 0; i != partialString.length; i ++)
+      {
+         unichar ch = [partialString characterAtIndex:i];
+         
+         if (i == 0 && (!self.minimum || self.minimum.intValue < 0) && ch == '-')
+            continue;
+         else if (self.allowsFloats && !hasDot && ch == '.')
+            hasDot = true;
+         else if (!isdigit(ch))
+            return NO;
+      }
+
+   return YES;
+}
+@end
+
+
 #ifdef IOS
 
 char* ios_get_rarch_system_directory()
