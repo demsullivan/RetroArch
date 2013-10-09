@@ -26,8 +26,6 @@ typedef struct
    enum setting_type type;
 
    const char* name;
-   
-   void* value;
    uint32_t size;
    
    const char* short_description;
@@ -37,11 +35,28 @@ typedef struct
    double min;
    double max;
    bool allow_blank;
+   
+   union
+   {
+      bool boolean;
+      int integer;
+      float fraction;
+      const char* string;
+   } default_value;
+   
+   union
+   {
+      bool* boolean;
+      int* integer;
+      float* fraction;
+      char* string;
+      struct retro_keybind* keybind;
+   } value;
 }  rarch_setting_t;
 
-#define BINDFOR(s) (*(struct retro_keybind*)(&s)->value)
+#define BINDFOR(s) (*(&s)->value.keybind)
 
-extern const rarch_setting_t setting_data[];
+const rarch_setting_t* setting_data_get_list();
 
 void setting_data_reset();
 void setting_data_load_current();

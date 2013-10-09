@@ -71,11 +71,11 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    // Set value
    switch (aSetting->type)
    {
-      case ST_INT:    self.numericValue = @(*(int*)aSetting->value); break;
-      case ST_FLOAT:  self.numericValue = @(*(float*)aSetting->value); break;
-      case ST_STRING: self.stringValue = @((const char*)aSetting->value); break;
-      case ST_PATH:   self.stringValue = @((const char*)aSetting->value); break;
-      case ST_BOOL:   self.booleanValue = *(bool*)aSetting->value; break;
+      case ST_INT:    self.numericValue = @(*aSetting->value.integer); break;
+      case ST_FLOAT:  self.numericValue = @(*aSetting->value.fraction); break;
+      case ST_STRING: self.stringValue =  @( aSetting->value.string); break;
+      case ST_PATH:   self.stringValue =  @( aSetting->value.string); break;
+      case ST_BOOL:   self.booleanValue =   *aSetting->value.boolean; break;
       case ST_BIND:   [self updateInputString]; break;
       default:        break;
    }
@@ -95,9 +95,9 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    _numericValue = numericValue;
    
    if (_setting && _setting->type == ST_INT)
-      *(int*)_setting->value = _numericValue.intValue;
+      *_setting->value.integer = _numericValue.intValue;
    else if (_setting && _setting->type == ST_FLOAT)
-      *(float*)_setting->value = _numericValue.floatValue;
+      *_setting->value.fraction = _numericValue.floatValue;
 }
 
 - (void)setBooleanValue:(bool)booleanValue
@@ -105,7 +105,7 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    _booleanValue = booleanValue;
    
    if (_setting && _setting->type == ST_BOOL)
-      *(bool*)_setting->value = _booleanValue;
+      *_setting->value.boolean = _booleanValue;
 }
 
 - (void)setStringValue:(NSString *)stringValue
@@ -113,7 +113,7 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    _stringValue = stringValue ? stringValue : @"";
    
    if (_setting && (_setting->type == ST_STRING || _setting->type == ST_PATH))
-      strlcpy(_setting->value, _stringValue.UTF8String, _setting->size);
+      strlcpy(_setting->value.string, _stringValue.UTF8String, _setting->size);
 }
 
 // Input Binding
@@ -187,6 +187,8 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    _settings = [NSMutableArray array];
 
    setting_data_load_current();
+
+   const rarch_setting_t* setting_data = setting_data_get_list();
 
    for (int i = 0; setting_data[i].type; i ++)
    {
@@ -295,6 +297,7 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    }
    else
    {
+      const rarch_setting_t* setting_data = setting_data_get_list();
       const rarch_setting_t* setting = &setting_data[[item intValue]];
 
       if ([tableColumn.identifier isEqualToString:@"title"])

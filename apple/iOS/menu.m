@@ -115,7 +115,7 @@
 - (void)handleBooleanSwitch:(UISwitch*)swt
 {
    if (self.setting)
-      *(bool*)self.setting->value = swt.on ? true : false;
+      *self.setting->value.boolean = swt.on ? true : false;
 }
 
 - (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
