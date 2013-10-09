@@ -31,7 +31,7 @@
 
 @protocol RAMenuItemBase
 - (UITableViewCell*)cellForTableView:(UITableView*)tableView;
-- (void)wasSelectedOnTableView:(UITableView*)tableView;
+- (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller;
 @end
 
 /*********************************************/
@@ -54,7 +54,7 @@
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
-   [[self itemForIndexPath:indexPath] wasSelectedOnTableView:tableView];
+   [[self itemForIndexPath:indexPath] wasSelectedOnTableView:tableView ofController:self];
 }
 
 @end
@@ -92,7 +92,7 @@
    return result;
 }
 
-- (void)wasSelectedOnTableView:(UITableView*)tableView
+- (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
 {
    if (self.action)
       self.action();
@@ -146,7 +146,7 @@
       *(bool*)self.setting->value = swt.on ? true : false;
 }
 
-- (void)wasSelectedOnTableView:(UITableView*)tableView
+- (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
 {
 }
 
@@ -160,7 +160,7 @@
 /*********************************************/
 @interface RAMenuItemString : NSObject<RAMenuItemBase, UIAlertViewDelegate, UITextFieldDelegate>
 @property (nonatomic) const rarch_setting_t* setting;
-@property (nonatomic) UITableView* parentTable;
+@property (nonatomic, weak) UITableView* parentTable;
 @end
 
 @implementation RAMenuItemString
@@ -175,7 +175,9 @@
 - (UITableViewCell*)cellForTableView:(UITableView*)tableView
 {
    static NSString* const cell_id = @"string_setting";
-   
+
+   self.parentTable = tableView;
+
    UITableViewCell* result = [tableView dequeueReusableCellWithIdentifier:cell_id];
    if (!result)
    {
@@ -187,15 +189,13 @@
    result.textLabel.text = @(self.setting->short_description);
 
    if (self.setting)
-      result.detailTextLabel.text = @(setting_data_get_string_representation(_setting, buffer, sizeof(buffer)));
+      result.detailTextLabel.text = @(setting_data_get_string_representation(self.setting, buffer, sizeof(buffer)));
    return result;
 }
 
-- (void)wasSelectedOnTableView:(UITableView*)tableView
+- (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
 {
-   self.parentTable = tableView;
-
-   UIAlertView* alertView = [[UIAlertView alloc] initWithTitle:@"Enter new value" message:@(_setting->short_description) delegate:self
+   UIAlertView* alertView = [[UIAlertView alloc] initWithTitle:@"Enter new value" message:@(self.setting->short_description) delegate:self
                                                   cancelButtonTitle:@"Cancel" otherButtonTitles:@"OK", nil];
    alertView.alertViewStyle = UIAlertViewStylePlainTextInput;
 
@@ -203,18 +203,18 @@
    char buffer[256];
    
    field.delegate = self;
-   field.text = @(setting_data_get_string_representation(_setting, buffer, sizeof(buffer)));
-   field.keyboardType = (_setting->type == ST_INT || _setting->type == ST_FLOAT) ? UIKeyboardTypeDecimalPad : UIKeyboardTypeDefault;
+   field.text = @(setting_data_get_string_representation(self.setting, buffer, sizeof(buffer)));
+   field.keyboardType = (self.setting->type == ST_INT || self.setting->type == ST_FLOAT) ? UIKeyboardTypeDecimalPad : UIKeyboardTypeDefault;
 
    [alertView show];
 }
 
 - (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
 {
-   if (_setting->type == ST_INT || _setting->type == ST_FLOAT)
+   if (self.setting->type == ST_INT || self.setting->type == ST_FLOAT)
    {
-      RANumberFormatter* formatter = [[RANumberFormatter alloc] initWithFloatSupport:_setting->type == ST_FLOAT
-                                                                minimum:_setting->min maximum:_setting->max];
+      RANumberFormatter* formatter = [[RANumberFormatter alloc] initWithFloatSupport:self.setting->type == ST_FLOAT
+                                                                minimum:self.setting->min maximum:self.setting->max];
 
       NSString* result = [textField.text stringByReplacingCharactersInRange:range withString:string];
       return [formatter isPartialStringValid:result newEditingString:nil errorDescription:nil];
@@ -230,11 +230,51 @@
 
    if (buttonIndex == alertView.firstOtherButtonIndex && text.length)
    {
-      setting_data_set_with_string_representation(_setting, text.UTF8String);
+      setting_data_set_with_string_representation(self.setting, text.UTF8String);
+      [self.parentTable reloadData];
+   }
+}
+
+@end
+
+/*********************************************/
+/* RAMenuItemPathSetting                     */
+/* A menu item that displays and allows      */
+/* browsing for a path setting.              */
+/*********************************************/
+@interface RAMenuItemPathSetting : RAMenuItemString<RAMenuItemBase, RADirectoryListDelegate>
+@property (nonatomic) RADirectoryList* baseList;
+@end
+
+@implementation RAMenuItemPathSetting
+
++ (RAMenuItemPathSetting*)itemForSetting:(const char*)setting_name
+{
+   RAMenuItemPathSetting* item = [RAMenuItemPathSetting new];
+   item.setting = setting_data_find_setting(setting_name);
+   return item;
+}
+
+- (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
+{
+   self.baseList = [[RADirectoryList alloc] initWithPath:@"/" delegate:self];
+   [controller.navigationController pushViewController:self.baseList animated:YES];
+}
+
+- (bool)directoryList:(id)list itemWasSelected:(RADirectoryItem *)path
+{
+   if(path.isDirectory)
+      [[list navigationController] pushViewController:[[RADirectoryList alloc] initWithPath:path.path delegate:self] animated:YES];
+   else
+   {
+      setting_data_set_with_string_representation(self.setting, path.path.UTF8String);
+      [self.baseList.navigationController popToViewController:self.baseList animated:NO];
+      [self.baseList.navigationController popViewControllerAnimated:YES];
       
       [self.parentTable reloadData];
-      self.parentTable = nil;
    }
+   
+   return true;
 }
 
 @end
@@ -245,7 +285,7 @@
 /* Menu object that is displayed immediately */
 /* after startup.                            */
 /*********************************************/
-@interface RAMainMenu : RAMenuBase @end
+@interface RAMainMenu : RAMenuBase<RAModuleListDelegate> @end
 @implementation RAMainMenu
 
 - (id)init
@@ -258,14 +298,15 @@
       @[
          @[
             @"",
-            [RAMenuItemBasic itemWithDescription:@"Core"                      action:^{ [self selectCore];   }],
+            [RAMenuItemBasic itemWithDescription:@"Choose Core"               action:^{ [self chooseCore];   }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [self showSettings]; }],
             [RAMenuItemBoolean itemForSetting:"video_fullscreen"],
             [RAMenuItemString itemForSetting:"audio_device"],
-            [RAMenuItemString itemForSetting:"video_monitor_index"]
+            [RAMenuItemString itemForSetting:"video_monitor_index"],
+            [RAMenuItemPathSetting itemForSetting:"libretro_path"]
          ]
       ];
    }
@@ -273,14 +314,21 @@
    return self;
 }
 
-- (void)selectCore
+- (void)chooseCore
 {
-   printf("HAHA\n");
+   [self.navigationController pushViewController:[[RAModuleList alloc] initWithGame:@"" delegate:self] animated:YES];
+}
+
+- (bool)moduleList:(id)list itemWasSelected:(RAModuleInfo *)module
+{
+   printf("%s\n", module.path.UTF8String);
+   [self.navigationController popViewControllerAnimated:YES];
+   return true;
 }
 
 - (void)loadGame
 {
-   printf("HOHO\n");
+   [RetroArch_iOS.get beginBrowsingForFile];
 }
 
 - (void)showSettings
@@ -427,8 +475,7 @@ static void handle_touch_event(NSArray* touches)
    else if (!path_make_and_check_directory(self.systemDirectory.UTF8String, 0755, R_OK | W_OK | X_OK))
       apple_display_alert([NSString stringWithFormat:@"Failed to create or access system directory: %@", self.systemDirectory], 0);
    else
-      [self beginBrowsingForFile];
-
+      [self pushViewController:[RAMainMenu new] animated:YES];
    
    // Warn if there are no cores present
    if (apple_get_modules().count == 0)
