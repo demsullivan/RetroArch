@@ -21,70 +21,7 @@
 #include "driver.h"
 #include "input/input_common.h"
 
-struct settings fake_settings;
-struct global fake_extern;
-
 static const void* associated_name_tag = (void*)&associated_name_tag;
-
-#define BINDFOR(s) (*(struct retro_keybind*)(&s)->value)
-
-static const char* key_name_for_id(uint32_t hidkey)
-{
-   for (int i = 0; apple_key_name_map[i].hid_id; i ++)
-      if (apple_key_name_map[i].hid_id == hidkey)
-         return apple_key_name_map[i].keyname;
-
-   return "nul";
-}
-
-static uint32_t key_id_for_name(const char* name)
-{
-   for (int i = 0; apple_key_name_map[i].hid_id; i ++)
-      if (strcmp(name, apple_key_name_map[i].keyname) == 0)
-         return apple_key_name_map[i].hid_id;
-   
-   return 0;
-}
-
-#define key_name_for_rk(X) key_name_for_id(input_translate_rk_to_keysym(X))
-#define key_rk_for_name(X) input_translate_keysym_to_rk(key_id_for_name(X))
-
-static const char* get_input_config_key(const rarch_setting_t* setting, const char* type)
-{
-   static char buffer[32];
-   if (setting->input_player)
-      snprintf(buffer, 32, "input_player%d_%s%c%s", setting->input_player, setting->name, type ? '_' : '\0', type);
-   else
-      snprintf(buffer, 32, "input_%s%c%s", setting->name, type ? '_' : '\0', type);
-   return buffer;
-}
-
-static const char* get_button_name(const rarch_setting_t* setting)
-{
-   static char buffer[32];
-
-   if (BINDFOR(*setting).joykey == NO_BTN)
-      return "nul";
-
-   snprintf(buffer, 32, "%lld", BINDFOR(*setting).joykey);
-   return buffer;
-}
-
-static const char* get_axis_name(const rarch_setting_t* setting)
-{
-   static char buffer[32];
-   
-   uint32_t joyaxis = BINDFOR(*setting).joyaxis;
-   
-   if (AXIS_NEG_GET(joyaxis) != AXIS_DIR_NONE)
-      snprintf(buffer, 8, "-%d", AXIS_NEG_GET(joyaxis));
-   else if (AXIS_POS_GET(joyaxis) != AXIS_DIR_NONE)
-      snprintf(buffer, 8, "+%d", AXIS_POS_GET(joyaxis));
-   else
-      return "nul";
-   
-   return buffer;
-}
 
 @interface RANumberFormatter : NSNumberFormatter
 @end
@@ -223,9 +160,8 @@ static const char* get_axis_name(const rarch_setting_t* setting)
 // Input Binding
 - (void)updateInputString
 {
-   self.stringValue = [NSString stringWithFormat:@"[KB:%s] [JS:%s] [AX:%s]", key_name_for_rk(BINDFOR(*_setting).key),
-                                                                              get_button_name(_setting),
-                                                                              get_axis_name(_setting)];
+   char buffer[256];
+   self.stringValue = @(setting_data_get_string_representation(_setting, buffer, sizeof(buffer)));
 }
 
 - (void)dismissBinder
@@ -291,8 +227,7 @@ static const char* get_axis_name(const rarch_setting_t* setting)
    NSMutableArray* thisSubGroup = nil;
    _settings = [NSMutableArray array];
 
-   memcpy(&fake_settings, &g_settings, sizeof(struct settings));
-   memcpy(&fake_extern, &g_extern, sizeof(struct global));
+   setting_data_load_current();
 
    for (int i = 0; setting_data[i].type; i ++)
    {
@@ -334,70 +269,14 @@ static const char* get_axis_name(const rarch_setting_t* setting)
       }
    }
    
-   [self load];
-}
-
-- (void)load
-{
-   config_file_t* conf = config_file_new(apple_platform.globalConfigFile.UTF8String);
-
-   for (int i = 0; setting_data[i].type; i ++)
-   {
-      switch (setting_data[i].type)
-      {
-         case ST_BOOL:   config_get_bool  (conf, setting_data[i].name,  (bool*)setting_data[i].value); break;
-         case ST_INT:    config_get_int   (conf, setting_data[i].name,   (int*)setting_data[i].value); break;
-         case ST_FLOAT:  config_get_float (conf, setting_data[i].name, (float*)setting_data[i].value); break;
-         case ST_PATH:   config_get_array (conf, setting_data[i].name,  (char*)setting_data[i].value, setting_data[i].size); break;
-         case ST_STRING: config_get_array (conf, setting_data[i].name,  (char*)setting_data[i].value, setting_data[i].size); break;
-         
-         case ST_BIND:
-         {
-            input_config_parse_key       (conf, "input_player1", setting_data[i].name, setting_data[i].value);
-            input_config_parse_joy_button(conf, "input_player1", setting_data[i].name, setting_data[i].value);
-            input_config_parse_joy_axis  (conf, "input_player1", setting_data[i].name, setting_data[i].value);
-            break;
-         }
-         
-         case ST_HEX:    break;
-         default:        break;
-      }
-   }
-   config_file_free(conf);
+   setting_data_load_config_path(apple_platform.globalConfigFile.UTF8String);
 }
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-   config_file_t* conf = config_file_new(apple_platform.globalConfigFile.UTF8String);
-   conf = conf ? conf : config_file_new(0);
-   
-   for (int i = 0; setting_data[i].type; i ++)
-   {
-      switch (setting_data[i].type)
-      {
-         case ST_BOOL:   config_set_bool  (conf, setting_data[i].name, * (bool*)setting_data[i].value); break;
-         case ST_INT:    config_set_int   (conf, setting_data[i].name, *  (int*)setting_data[i].value); break;
-         case ST_FLOAT:  config_set_float (conf, setting_data[i].name, *(float*)setting_data[i].value); break;
-         case ST_PATH:   config_set_string(conf, setting_data[i].name,   (char*)setting_data[i].value); break;
-         case ST_STRING: config_set_string(conf, setting_data[i].name,   (char*)setting_data[i].value); break;
-         
-         case ST_BIND:
-         {
-            config_set_string(conf, get_input_config_key(&setting_data[i], 0     ), key_name_for_rk(BINDFOR(setting_data[i]).key));
-            config_set_string(conf, get_input_config_key(&setting_data[i], "btn" ), get_button_name(&setting_data[i]));
-            config_set_string(conf, get_input_config_key(&setting_data[i], "axis"), get_axis_name(&setting_data[i]));
-            break;
-         }
-         
-         case ST_HEX:    break;
-         default:        break;
-      }
-   }
-   config_file_write(conf, apple_platform.globalConfigFile.UTF8String);
-   config_file_free(conf);
+   setting_data_save_config_path(apple_platform.globalConfigFile.UTF8String);
 
    apple_exit_stasis(true);
-
    [NSApp stopModal];
 }
 

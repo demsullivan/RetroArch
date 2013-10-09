@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		961EAC531805B888003A94AE /* setting_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 961EAC511805B888003A94AE /* setting_data.c */; };
 		9620F663178FD4D3001B3B81 /* settings.m in Sources */ = {isa = PBXBuildFile; fileRef = 9620F662178FD4D3001B3B81 /* settings.m */; };
 		962EE0E2178B3DF6004224FF /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 962EE0E1178B3DF6004224FF /* IOKit.framework */; };
 		96355CE31788E72A0010DBFA /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 96355CE21788E72A0010DBFA /* Cocoa.framework */; };
@@ -29,6 +30,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		961EAC511805B888003A94AE /* setting_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = setting_data.c; sourceTree = "<group>"; };
+		961EAC521805B888003A94AE /* setting_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = setting_data.h; sourceTree = "<group>"; };
 		9620F662178FD4D3001B3B81 /* settings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = settings.m; path = OSX/settings.m; sourceTree = SOURCE_ROOT; };
 		962EE0E1178B3DF6004224FF /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = ../../../../../../../System/Library/Frameworks/IOKit.framework; sourceTree = "<group>"; };
 		96355CDF1788E72A0010DBFA /* RetroArch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RetroArch.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -114,6 +117,8 @@
 		96355CE81788E72A0010DBFA /* common */ = {
 			isa = PBXGroup;
 			children = (
+				961EAC511805B888003A94AE /* setting_data.c */,
+				961EAC521805B888003A94AE /* setting_data.h */,
 				9646869617BBC14E00C5EA69 /* platform.m */,
 				9646869717BBC14E00C5EA69 /* platform.h */,
 				9620F662178FD4D3001B3B81 /* settings.m */,
@@ -223,6 +228,7 @@
 				9678949F1788F02600D6CA69 /* utility.m in Sources */,
 				967894A11788F07D00D6CA69 /* griffin.c in Sources */,
 				9620F663178FD4D3001B3B81 /* settings.m in Sources */,
+				961EAC531805B888003A94AE /* setting_data.c in Sources */,
 				9646869817BBC14E00C5EA69 /* platform.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
