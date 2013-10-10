@@ -80,6 +80,14 @@
 @interface RAMainMenu : RAMenuBase<RAModuleListDelegate> @end
 
 /*********************************************/
+/* RAFronendSettingsMenu                     */
+/* Menu object that displays and allows      */
+/* editing of cocoa frontend related         */
+/* settings.                                 */
+/*********************************************/
+@interface RAFrontendSettingsMenu : RAMenuBase<UIAlertViewDelegate> @end
+
+/*********************************************/
 /* RACoreSettingsMenu                        */
 /* Menu object that displays and allows      */
 /* editing of the setting_data list.         */

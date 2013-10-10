@@ -258,8 +258,7 @@
    
       self.sections =
       @[
-         @[
-            @"",
+         @[ @"",
             [RAMenuItemBasic itemWithDescription:@"Choose Core"               action:^{ [self chooseCore];   }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
@@ -291,7 +290,85 @@
 
 - (void)showSettings
 {
-   [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:nil] animated:YES];
+   [self.navigationController pushViewController:[RAFrontendSettingsMenu new] animated:YES];
+}
+
+@end
+
+/*********************************************/
+/* RAFronendSettingsMenu                     */
+/* Menu object that displays and allows      */
+/* editing of cocoa frontend related         */
+/* settings.                                 */
+/*********************************************/
+static const void* const associated_core_key = &associated_core_key;
+
+@implementation RAFrontendSettingsMenu
+
+- (id)init
+{
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
+   {
+      NSMutableArray* cores = [NSMutableArray arrayWithObject:@"Cores"];
+      [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config" action:^{ [self showCoreConfigFor:nil]; }]];
+
+      NSArray* coreList = apple_get_modules();
+      for (RAModuleInfo* i in coreList)
+         [cores addObject:[RAMenuItemBasic itemWithDescription:i.description action:^{ [self showCoreConfigFor:i]; }]];
+  
+      self.sections =
+      @[
+         @[ @"Frontend",
+            [RAMenuItemBasic itemWithDescription:@"Diagnostic Log" action:^{ }],
+            [RAMenuItemBasic itemWithDescription:@"TV Mode" action:^{ }]
+         ],
+         
+         @[ @"Bluetooth",
+            [RAMenuItemBasic itemWithDescription:@"Mode" action:^{ }]
+         ],
+         
+         @[ @"Orientations",
+            [RAMenuItemBasic itemWithDescription:@"Portrait" action:^{ }],
+            [RAMenuItemBasic itemWithDescription:@"Portrait Upside Down" action:^{ }],
+            [RAMenuItemBasic itemWithDescription:@"Landscape Left" action:^{ }],
+            [RAMenuItemBasic itemWithDescription:@"Landscape Right" action:^{ }]
+         ],
+         
+         cores
+      ];
+   }
+   
+   return self;
+}
+
+- (void)showCoreConfigFor:(RAModuleInfo*)core
+{
+   if (core && !core.hasCustomConfig)
+   {
+      UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"RetroArch"
+                                                      message:@"No custom configuration for this core exists, "
+                                                               "would you like to create one?"
+                                                     delegate:self
+                                            cancelButtonTitle:@"No"
+                                            otherButtonTitles:@"Yes", nil];
+      objc_setAssociatedObject(alert, associated_core_key, core, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+      [alert show];
+   }
+   else
+      [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+   RAModuleInfo* core = objc_getAssociatedObject(alertView, associated_core_key);
+      
+   if (buttonIndex == alertView.firstOtherButtonIndex && core)
+   {
+      [core createCustomConfig];
+      [self.tableView reloadData];
+   }
+   
+   [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
 }
 
 @end
