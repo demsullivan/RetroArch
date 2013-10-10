@@ -70,20 +70,4 @@
 - (id)initWithModuleInfo:(RAModuleInfo*)info;
 @end
 
-// settings.m
-@interface RASettingsSubList : RATableViewController
-- (id)initWithSettings:(NSArray*)values title:(NSString*)title;
-- (void)writeSettings:(NSArray*)settingList toConfig:(config_file_t*)config;
-@end
-
-// settings.m
-@interface RASettingsList : RASettingsSubList
-+ (void)refreshModuleConfig:(RAModuleInfo*)module;
-- (id)initWithModule:(RAModuleInfo*)module;
-@end
-
-// settings.m
-@interface RASystemSettingsList : RASettingsSubList<UIAlertViewDelegate>
-@end
-
 #endif

@@ -293,7 +293,7 @@ static void handle_touch_event(NSArray* touches)
 - (void)loadingCore:(RAModuleInfo*)core withFile:(const char*)file
 {
    [self pushViewController:RAGameView.get animated:NO];
-   [RASettingsList refreshModuleConfig:core];
+//   [RASettingsList refreshModuleConfig:core];
 
    btpad_set_inquiry_state(false);
 
@@ -390,12 +390,12 @@ static void handle_touch_event(NSArray* touches)
 
 - (IBAction)showSettings
 {
-   [self pushViewController:[[RASettingsList alloc] initWithModule:apple_core] animated:YES];
+   [self pushViewController:[[RACoreSettingsMenu alloc] initWithCore:apple_core] animated:YES];
 }
 
 - (IBAction)showSystemSettings
 {
-   [self pushViewController:[RASystemSettingsList new] animated:YES];
+   [self pushViewController:[RAFrontendSettingsMenu new] animated:YES];
 }
 
 @end

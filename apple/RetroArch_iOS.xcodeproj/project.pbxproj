@@ -28,7 +28,6 @@
 		966B9CCB16E41EC1005B61E1 /* PauseIndicatorView.xib in Resources */ = {isa = PBXBuildFile; fileRef = 966B9CC816E41EC1005B61E1 /* PauseIndicatorView.xib */; };
 		9678945B1788EAAE00D6CA69 /* browser.m in Sources */ = {isa = PBXBuildFile; fileRef = 967894571788EAAE00D6CA69 /* browser.m */; };
 		9678945C1788EAAE00D6CA69 /* RALogView.m in Sources */ = {isa = PBXBuildFile; fileRef = 967894581788EAAE00D6CA69 /* RALogView.m */; };
-		9678945D1788EAAE00D6CA69 /* settings.m in Sources */ = {isa = PBXBuildFile; fileRef = 967894591788EAAE00D6CA69 /* settings.m */; };
 		967894631788EBD800D6CA69 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 967894611788EBD800D6CA69 /* InfoPlist.strings */; };
 		967D646F16E45428006BA1F2 /* ic_pause.png in Resources */ = {isa = PBXBuildFile; fileRef = 967D646E16E45428006BA1F2 /* ic_pause.png */; };
 		967D647516E6EA04006BA1F2 /* modules in Resources */ = {isa = PBXBuildFile; fileRef = 967D647416E6EA04006BA1F2 /* modules */; };
@@ -67,7 +66,6 @@
 		966B9CC816E41EC1005B61E1 /* PauseIndicatorView.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = PauseIndicatorView.xib; sourceTree = "<group>"; };
 		967894571788EAAE00D6CA69 /* browser.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = browser.m; path = iOS/browser.m; sourceTree = SOURCE_ROOT; };
 		967894581788EAAE00D6CA69 /* RALogView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = RALogView.m; path = iOS/RALogView.m; sourceTree = SOURCE_ROOT; };
-		967894591788EAAE00D6CA69 /* settings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = settings.m; path = iOS/settings.m; sourceTree = SOURCE_ROOT; };
 		9678945A1788EAAE00D6CA69 /* views.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = views.h; path = iOS/views.h; sourceTree = SOURCE_ROOT; };
 		9678945F1788EBD000D6CA69 /* RetroArch-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "RetroArch-Info.plist"; path = "iOS/RetroArch-Info.plist"; sourceTree = SOURCE_ROOT; };
 		967894621788EBD800D6CA69 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = iOS/en.lproj/InfoPlist.strings; sourceTree = SOURCE_ROOT; };
@@ -169,7 +167,6 @@
 				961EAC591805ECC8003A94AE /* platform.h */,
 				967894571788EAAE00D6CA69 /* browser.m */,
 				967894581788EAAE00D6CA69 /* RALogView.m */,
-				967894591788EAAE00D6CA69 /* settings.m */,
 				9678945A1788EAAE00D6CA69 /* views.h */,
 				96297A0E16C5AEA100E6DCE0 /* main.m */,
 				963F5AC516CC523B009BBD19 /* RAGameView.m */,
@@ -321,7 +318,6 @@
 				96337E82176AC6E5004685F3 /* utility.m in Sources */,
 				9678945B1788EAAE00D6CA69 /* browser.m in Sources */,
 				9678945C1788EAAE00D6CA69 /* RALogView.m in Sources */,
-				9678945D1788EAAE00D6CA69 /* settings.m in Sources */,
 				9646869517BBBEAE00C5EA69 /* platform.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
