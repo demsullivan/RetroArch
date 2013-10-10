@@ -264,11 +264,7 @@
             [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ [self loadGame];     }],
-            [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [self showSettings]; }],
-            [RAMenuItemBoolean itemForSetting:"video_fullscreen"],
-            [RAMenuItemString itemForSetting:"audio_device"],
-            [RAMenuItemString itemForSetting:"video_monitor_index"],
-            [RAMenuItemPathSetting itemForSetting:"libretro_path"]
+            [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [self showSettings]; }]
          ]
       ];
    }
@@ -295,46 +291,68 @@
 
 - (void)showSettings
 {
-   [self.navigationController pushViewController:[RASystemSettingsList new] animated:YES];
+   [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:nil] animated:YES];
 }
 
 @end
 
+/*********************************************/
+/* RACoreSettingsMenu                        */
+/* Menu object that displays and allows      */
+/* editing of the setting_data list.         */
+/*********************************************/
 @implementation RACoreSettingsMenu
 
-- (id)init
+- (id)initWithCore:(RAModuleInfo*)core
 {
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
-      setting_data_load_current();
+      setting_data_reset();
+      
+      self.core = core;
+      self.title = self.core ? self.core.description : @"Global Core Settings";
    
-      self.title = @"Core Settings";
-   
-      self.sections =
-      @[
-         @[
-            @"Video",
-            [RAMenuItemBoolean itemForSetting:"video_smooth"],
-            [RAMenuItemBoolean itemForSetting:"video_crop_overscan"],
-            [RAMenuItemBoolean itemForSetting:"video_scale_integer"]
-            // AR
-         ],
-         
-         @[
-            @"GPU Shader",
-            [RAMenuItemBoolean itemForSetting:"video_shader_enable"],
-            [RAMenuItemPathSetting itemForSetting:"video_shader"]
-         ],
-         
-         @[
-            @"Audio",
-            [RAMenuItemBoolean itemForSetting:"audio_enable"],
-            [RAMenuItemBoolean itemForSetting:"audio_sync"],
-            [RAMenuItemBoolean itemForSetting:"audio_rate_control"]
-         ]
-      ];
+      NSMutableArray* settings = [NSMutableArray arrayWithObjects:@"", nil];
+      [self.sections addObject:settings];
+      
+      const rarch_setting_t* setting_data = setting_data_get_list();
+      for (const rarch_setting_t* i = setting_data; i->type != ST_NONE; i ++)
+         if (i->type == ST_GROUP)
+            [settings addObject:[RAMenuItemBasic itemWithDescription:@(i->name) action:
+            ^{
+               [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithGroup:i] animated:YES];
+            }]];
    }
    
+   return self;
+}
+
+- (id)initWithGroup:(const rarch_setting_t*)group
+{
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
+   {
+      self.title = @(group->name);
+   
+      NSMutableArray* settings = nil;
+   
+      for (const rarch_setting_t* i = group + 1; i->type != ST_END_GROUP; i ++)
+      {
+         if (i->type == ST_SUB_GROUP)
+            settings = [NSMutableArray arrayWithObjects:@(i->name), nil];
+         else if (i->type == ST_END_SUB_GROUP)
+         {
+            if (settings.count)
+               [self.sections addObject:settings];
+         }
+         else if (i->type == ST_BOOL)
+            [settings addObject:[RAMenuItemBoolean itemForSetting:i->name]];
+         else if (i->type == ST_INT || i->type == ST_FLOAT || i->type == ST_STRING)
+            [settings addObject:[RAMenuItemString itemForSetting:i->name]];
+         else if (i->type == ST_PATH)
+            [settings addObject:[RAMenuItemPathSetting itemForSetting:i->name]];
+      }
+   }
+
    return self;
 }
 

@@ -464,17 +464,19 @@ const rarch_setting_t* setting_data_get_list()
    /* AUDIO */
    /*********/
    START_GROUP("Audio")
-      START_SUB_GROUP("Audio")
+      START_SUB_GROUP("State")
          CONFIG_BOOL(g_settings.audio.enable, "audio_enable", "Enable", audio_enable)
          CONFIG_FLOAT(g_settings.audio.volume, "audio_volume", "Volume", audio_volume)
+      END_SUB_GROUP()
 
-         /* Audio: Sync */
+      START_SUB_GROUP("Sync")
          CONFIG_BOOL(g_settings.audio.sync, "audio_sync", "Enable Sync", audio_sync)
          CONFIG_INT(g_settings.audio.latency, "audio_latency", "Latency", out_latency)
          CONFIG_BOOL(g_settings.audio.rate_control, "audio_rate_control", "Enable Rate Control", rate_control)
          CONFIG_FLOAT(g_settings.audio.rate_control_delta, "audio_rate_control_delta", "Rate Control Delta", rate_control_delta)
+      END_SUB_GROUP()
 
-         /* Audio: Other */
+      START_SUB_GROUP("Misc")
          CONFIG_STRING(g_settings.audio.device, "audio_device", "Device", DEFAULT_ME_YO)
          CONFIG_INT(g_settings.audio.out_rate, "audio_out_rate", "Ouput Rate", out_rate)
          CONFIG_PATH(g_settings.audio.dsp_plugin, "audio_dsp_plugin", "DSP Plugin", DEFAULT_ME_YO)
@@ -489,39 +491,45 @@ const rarch_setting_t* setting_data_get_list()
          /* Input: Autoconfig */
          CONFIG_BOOL(g_settings.input.autodetect_enable, "input_autodetect_enable", "Use joypad autodetection", input_autodetect_enable)
          CONFIG_PATH(g_settings.input.autoconfig_dir, "joypad_autoconfig_dir", "Joypad Autoconfig Directory", DEFAULT_ME_YO)
+      END_SUB_GROUP()
 
-         /* Input: Joypad mapping */
+      START_SUB_GROUP("Joypad Mapping")
          CONFIG_INT(g_settings.input.joypad_map[0], "input_player1_joypad_index", "Player 1 Pad Index", DEFAULT_ME_YO)
          CONFIG_INT(g_settings.input.joypad_map[1], "input_player2_joypad_index", "Player 2 Pad Index", DEFAULT_ME_YO)
          CONFIG_INT(g_settings.input.joypad_map[2], "input_player3_joypad_index", "Player 3 Pad Index", DEFAULT_ME_YO)
          CONFIG_INT(g_settings.input.joypad_map[3], "input_player4_joypad_index", "Player 4 Pad Index", DEFAULT_ME_YO)
          CONFIG_INT(g_settings.input.joypad_map[4], "input_player5_joypad_index", "Player 5 Pad Index", DEFAULT_ME_YO)
+      END_SUB_GROUP()
 
-         /* Input: Turbo/Axis options */
+      START_SUB_GROUP("Turbo/Deadzone")
          CONFIG_FLOAT(g_settings.input.axis_threshold, "input_axis_threshold", "Axis Deadzone", axis_threshold)
          CONFIG_INT(g_settings.input.turbo_period, "input_turbo_period", "Turbo Period", turbo_period)
          CONFIG_INT(g_settings.input.turbo_duty_cycle, "input_duty_cycle", "Duty Cycle", turbo_duty_cycle)
+      END_SUB_GROUP()
 
-         /* Input: Misc */
+      START_SUB_GROUP("Misc")
          CONFIG_BOOL(g_settings.input.netplay_client_swap_input, "netplay_client_swap_input", "Swap Netplay Input", netplay_client_swap_input)
          CONFIG_BOOL(g_settings.input.debug_enable, "input_debug_enable", "Enable Input Debugging", input_debug_enable)
+      END_SUB_GROUP()
 
-         /* Input: Overlay */
-         #ifdef HAVE_OVERLAY
+      #ifdef HAVE_OVERLAY
+         START_SUB_GROUP("Overlay")
             CONFIG_PATH(g_settings.input.overlay, "input_overlay", "Input Overlay", DEFAULT_ME_YO)
             CONFIG_FLOAT(g_settings.input.overlay_opacity, "input_overlay_opacity", "Overlay Opacity", 1.0f)
             CONFIG_FLOAT(g_settings.input.overlay_scale, "input_overlay_scale", "Overlay Scale", 1.0f)
-         #endif
+         END_SUB_GROUP()
+      #endif
 
          /* Input: Android */
-         #ifdef ANDROID
+      #ifdef ANDROID
+         START_SUB_GROUP("Android")
             CONFIG_INT(g_settings.input.back_behavior, "input_back_behavior", "Back Behavior", BACK_BUTTON_QUIT)
             CONFIG_INT(g_settings.input.icade_profile[0], "input_autodetect_icade_profile_pad1", "iCade 1", DEFAULT_ME_YO)
             CONFIG_INT(g_settings.input.icade_profile[1], "input_autodetect_icade_profile_pad2", "iCade 2", DEFAULT_ME_YO)
             CONFIG_INT(g_settings.input.icade_profile[2], "input_autodetect_icade_profile_pad3", "iCade 3", DEFAULT_ME_YO)
             CONFIG_INT(g_settings.input.icade_profile[3], "input_autodetect_icade_profile_pad4", "iCade 4", DEFAULT_ME_YO)
-         #endif
-      END_SUB_GROUP()
+         END_SUB_GROUP()
+      #endif
 
       START_SUB_GROUP("Meta Keys")
          CONFIG_BIND(g_settings.input.binds[0][RARCH_FAST_FORWARD_KEY],       0, "toggle_fast_forward",  "Fast forward toggle")

@@ -72,7 +72,6 @@
 @property (nonatomic) RADirectoryList* baseList;
 @end
 
-
 /*********************************************/
 /* RAMainMenu                                */
 /* Menu object that is displayed immediately */
@@ -80,7 +79,15 @@
 /*********************************************/
 @interface RAMainMenu : RAMenuBase<RAModuleListDelegate> @end
 
-@interface RACoreSettingsMenu : RAMenuBase @end
+/*********************************************/
+/* RACoreSettingsMenu                        */
+/* Menu object that displays and allows      */
+/* editing of the setting_data list.         */
+/*********************************************/
+@interface RACoreSettingsMenu : RAMenuBase
+@property RAModuleInfo* core;
+- (id)initWithCore:(RAModuleInfo*)core;
+@end
 
 #endif
 
