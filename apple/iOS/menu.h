@@ -40,6 +40,7 @@
 @interface RAMenuItemBasic : NSObject<RAMenuItemBase>
 @property (nonatomic) NSString* description;
 @property (nonatomic, strong) void (^action)();
+@property (nonatomic, strong) NSString* (^detail)();
 @end
 
 /*********************************************/
@@ -77,7 +78,9 @@
 /* Menu object that is displayed immediately */
 /* after startup.                            */
 /*********************************************/
-@interface RAMainMenu : RAMenuBase<RAModuleListDelegate> @end
+@interface RAMainMenu : RAMenuBase<RAModuleListDelegate>
+@property (nonatomic) RAModuleInfo* core;
+@end
 
 /*********************************************/
 /* RAFronendSettingsMenu                     */

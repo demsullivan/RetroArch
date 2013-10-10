@@ -50,9 +50,15 @@
 
 + (RAMenuItemBasic*)itemWithDescription:(NSString*)description action:(void (^)())action
 {
+   return [self itemWithDescription:description action:action detail:Nil];
+}
+
++ (RAMenuItemBasic*)itemWithDescription:(NSString*)description action:(void (^)())action detail:(NSString* (^)())detail
+{
    RAMenuItemBasic* item = [RAMenuItemBasic new];
    item.description = description;
    item.action = action;
+   item.detail = detail;
    return item;
 }
 
@@ -65,6 +71,7 @@
       result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
    
    result.textLabel.text = self.description;
+   result.detailTextLabel.text = self.detail ? self.detail() : nil;
    return result;
 }
 
@@ -257,9 +264,11 @@
       self.title = @"RetroArch";
    
       self.sections =
-      @[
+      (id)@[
          @[ @"",
-            [RAMenuItemBasic itemWithDescription:@"Choose Core"               action:^{ [self chooseCore];   }],
+            [RAMenuItemBasic itemWithDescription:@"Choose Core"
+               action:^{ [self chooseCore];   }
+               detail:^{ return self.core ? self.core.description : @"None Selected"; }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ [self loadGame];     }],
@@ -278,7 +287,8 @@
 
 - (bool)moduleList:(id)list itemWasSelected:(RAModuleInfo *)module
 {
-   printf("%s\n", module.path.UTF8String);
+   self.core = module;
+   [self.tableView reloadData];
    [self.navigationController popViewControllerAnimated:YES];
    return true;
 }
@@ -310,16 +320,20 @@ static const void* const associated_core_key = &associated_core_key;
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
       NSMutableArray* cores = [NSMutableArray arrayWithObject:@"Cores"];
-      [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config" action:^{ [self showCoreConfigFor:nil]; }]];
+      [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config"
+         action: ^{ [self showCoreConfigFor:nil]; }]];
 
       NSArray* coreList = apple_get_modules();
       for (RAModuleInfo* i in coreList)
-         [cores addObject:[RAMenuItemBasic itemWithDescription:i.description action:^{ [self showCoreConfigFor:i]; }]];
+         [cores addObject:[RAMenuItemBasic itemWithDescription:i.description
+            action: ^{ [self showCoreConfigFor:i]; }
+            detail: ^{ return i.hasCustomConfig ? @"[Custom]" : @"[Global]"; }]];
   
       self.sections =
-      @[
+      (id)@[
          @[ @"Frontend",
-            [RAMenuItemBasic itemWithDescription:@"Diagnostic Log" action:^{ }],
+            [RAMenuItemBasic itemWithDescription:@"Diagnostic Log"
+               action: ^{ [self.navigationController pushViewController:[RALogView new] animated:YES]; }],
             [RAMenuItemBasic itemWithDescription:@"TV Mode" action:^{ }]
          ],
          
