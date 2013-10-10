@@ -61,15 +61,12 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
 
 - (id)initWithPath:(NSString*)path delegate:(id<RADirectoryListDelegate>)delegate
 {
-   self = [super initWithStyle:UITableViewStylePlain];
-   
-   if (self)
+   if ((self = [super initWithStyle:UITableViewStylePlain]))
    {
       _path = path;
       _directoryDelegate = delegate;
 
       self = [super initWithStyle:UITableViewStylePlain];
-      self.title = path.lastPathComponent;
       self.hidesHeaders = YES;
 
       self.toolbarItems =
@@ -84,19 +81,24 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
       
       [self.tableView addGestureRecognizer:[[UILongPressGestureRecognizer alloc] initWithTarget:self
                       action:@selector(fileAction:)]];
+      
+      self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Up"
+                                                style:UIBarButtonItemStyleBordered target:self action:@selector(gotoParent)];
    }
 
    return self;
 }
 
-- (void)viewWillAppear:(BOOL)animated
+- (void)gotoParent
 {
+   _path = [_path stringByDeletingLastPathComponent];
    [self refresh];
 }
- 
-- (void)viewDidDisappear:(BOOL)animated
+
+- (void)viewWillAppear:(BOOL)animated
 {
-   [self reset];
+   [super viewWillAppear:animated];
+   [self refresh];
 }
 
 - (NSArray*)sectionIndexTitlesForTableView:(UITableView*)tableView
@@ -112,6 +114,8 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
 
 - (void)refresh
 {
+   self.title = _path.lastPathComponent;
+
    // Need one array per section
    self.sections = [NSMutableArray array];
    
@@ -145,7 +149,15 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
 
 - (void)tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath
 {
-   [self.directoryDelegate directoryList:self itemWasSelected:[self itemForIndexPath:indexPath]];
+   RADirectoryItem* item = [self itemForIndexPath:indexPath];
+   
+   if (item.isDirectory)
+   {
+      _path = item.path;
+      [self refresh];
+   }
+   else
+      [self.directoryDelegate directoryList:self itemWasSelected:[self itemForIndexPath:indexPath]];
 }
 
 - (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath

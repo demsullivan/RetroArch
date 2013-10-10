@@ -227,23 +227,17 @@
 
 - (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
 {
-   self.baseList = [[RADirectoryList alloc] initWithPath:@"/" delegate:self];
-   [controller.navigationController pushViewController:self.baseList animated:YES];
+   RADirectoryList* list = [[RADirectoryList alloc] initWithPath:@"/" delegate:self];
+   [controller.navigationController pushViewController:list animated:YES];
 }
 
 - (bool)directoryList:(id)list itemWasSelected:(RADirectoryItem *)path
 {
-   if(path.isDirectory)
-      [[list navigationController] pushViewController:[[RADirectoryList alloc] initWithPath:path.path delegate:self] animated:YES];
-   else
-   {
-      setting_data_set_with_string_representation(self.setting, path.path.UTF8String);
-      [self.baseList.navigationController popToViewController:self.baseList animated:NO];
-      [self.baseList.navigationController popViewControllerAnimated:YES];
+   setting_data_set_with_string_representation(self.setting, path.path.UTF8String);
+   [[list navigationController] popViewControllerAnimated:YES];
       
-      [self.parentTable reloadData];
-   }
-   
+   [self.parentTable reloadData];
+
    return true;
 }
 
@@ -309,9 +303,7 @@
 
 - (bool)directoryList:(id)list itemWasSelected:(RADirectoryItem*)path
 {
-   if(path.isDirectory)
-      [self.navigationController pushViewController:[[RADirectoryList alloc] initWithPath:path.path delegate:self] animated:YES];
-   else
+   if (!path.isDirectory)
    {
       self.path = path.path;
       apple_run_core(self.core, self.path.UTF8String);

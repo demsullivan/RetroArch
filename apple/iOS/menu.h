@@ -69,9 +69,7 @@
 /* A menu item that displays and allows      */
 /* browsing for a path setting.              */
 /*********************************************/
-@interface RAMenuItemPathSetting : RAMenuItemString<RAMenuItemBase, RADirectoryListDelegate>
-@property (nonatomic) RADirectoryList* baseList;
-@end
+@interface RAMenuItemPathSetting : RAMenuItemString<RAMenuItemBase, RADirectoryListDelegate> @end
 
 /*********************************************/
 /* RAMainMenu                                */

@@ -34,7 +34,6 @@
 - (void)unloadingCore:(RAModuleInfo*)core;
 
 - (void)refreshSystemConfig;
-- (void)beginBrowsingForFile;
 
 @property (nonatomic) NSString* configDirectory;    // e.g. /var/mobile/Documents/.RetroArch
 @property (nonatomic) NSString* globalConfigFile;   // e.g. /var/mobile/Documents/.RetroArch/retroarch.cfg
