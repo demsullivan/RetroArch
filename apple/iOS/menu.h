@@ -78,8 +78,9 @@
 /* Menu object that is displayed immediately */
 /* after startup.                            */
 /*********************************************/
-@interface RAMainMenu : RAMenuBase<RAModuleListDelegate>
+@interface RAMainMenu : RAMenuBase<RAModuleListDelegate, RADirectoryListDelegate>
 @property (nonatomic) RAModuleInfo* core;
+@property (nonatomic) NSString* path;
 @end
 
 /*********************************************/

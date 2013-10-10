@@ -198,44 +198,6 @@ static void handle_touch_event(NSArray* touches)
    return true;
 }
 
-- (void)beginBrowsingForFile
-{
-   NSString* rootPath = RetroArch_iOS.get.documentsDirectory;
-   NSString* ragPath = [rootPath stringByAppendingPathComponent:@"RetroArchGames"];
-   NSString* target = path_is_directory(ragPath.UTF8String) ? ragPath : rootPath;
-   
-   [self pushViewController:[[RADirectoryList alloc] initWithPath:target delegate:self] animated:YES];
-
-   [self refreshSystemConfig];
-   if (apple_use_tv_mode)
-      apple_run_core(nil, 0);
-   
-}
-
-- (bool)directoryList:(id)list itemWasSelected:(RADirectoryItem*)path
-{
-   if(path.isDirectory)
-      [self pushViewController:[[RADirectoryList alloc] initWithPath:path.path delegate:self] animated:YES];
-   else
-   {
-      _path = path.path;
-   
-      if (access([path.path stringByDeletingLastPathComponent].UTF8String, R_OK | W_OK | X_OK))
-         apple_display_alert(@"The directory containing the selected file has limited permissions. This may "
-                              "prevent zipped games from loading, and will cause some cores to not function.", 0);
-
-      [self pushViewController:[[RAModuleList alloc] initWithGame:path.path delegate:self] animated:YES];
-   }
-   
-   return true;
-}
-
-- (bool)moduleList:(id)list itemWasSelected:(RAModuleInfo*)module
-{
-   apple_run_core(module, _path.UTF8String);
-   return true;
-}
-
 // UINavigationControllerDelegate
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated
 {

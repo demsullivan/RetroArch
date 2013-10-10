@@ -285,6 +285,20 @@
    [self.navigationController pushViewController:[[RAModuleList alloc] initWithGame:@"" delegate:self] animated:YES];
 }
 
+- (void)loadGame
+{
+   NSString* rootPath = RetroArch_iOS.get.documentsDirectory;
+   NSString* ragPath = [rootPath stringByAppendingPathComponent:@"RetroArchGames"];
+   NSString* target = path_is_directory(ragPath.UTF8String) ? ragPath : rootPath;
+
+   [self.navigationController pushViewController:[[RADirectoryList alloc] initWithPath:target delegate:self] animated:YES];
+}
+
+- (void)showSettings
+{
+   [self.navigationController pushViewController:[RAFrontendSettingsMenu new] animated:YES];
+}
+
 - (bool)moduleList:(id)list itemWasSelected:(RAModuleInfo *)module
 {
    self.core = module;
@@ -293,14 +307,17 @@
    return true;
 }
 
-- (void)loadGame
+- (bool)directoryList:(id)list itemWasSelected:(RADirectoryItem*)path
 {
-   [RetroArch_iOS.get beginBrowsingForFile];
-}
-
-- (void)showSettings
-{
-   [self.navigationController pushViewController:[RAFrontendSettingsMenu new] animated:YES];
+   if(path.isDirectory)
+      [self.navigationController pushViewController:[[RADirectoryList alloc] initWithPath:path.path delegate:self] animated:YES];
+   else
+   {
+      self.path = path.path;
+      apple_run_core(self.core, self.path.UTF8String);
+   }
+   
+   return true;
 }
 
 @end

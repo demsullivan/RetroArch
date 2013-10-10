@@ -125,6 +125,11 @@ void apple_run_core(RAModuleInfo* core, const char* file)
 {
    if (!apple_is_running)
    {
+      if (access([@(file) stringByDeletingLastPathComponent].UTF8String, R_OK | W_OK | X_OK))
+         apple_display_alert(@"The directory containing the selected file has limited permissions. This may "
+                              "prevent zipped games from loading, and will cause some cores to not function.", 0);
+   
+   
       [apple_platform loadingCore:core withFile:file];
 
       apple_core = core;

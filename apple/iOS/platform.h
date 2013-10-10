@@ -26,8 +26,7 @@
 - (void)iOS7SetiCadeMode:(bool)on;
 @end
 
-@interface RetroArch_iOS : UINavigationController<UIApplicationDelegate, UINavigationControllerDelegate, RetroArch_Platform,
-                                                   RADirectoryListDelegate, RAModuleListDelegate>
+@interface RetroArch_iOS : UINavigationController<UIApplicationDelegate, UINavigationControllerDelegate, RetroArch_Platform>
 
 + (RetroArch_iOS*)get;
 
