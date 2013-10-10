@@ -55,8 +55,14 @@
 
 + (RAMenuItemBasic*)itemWithDescription:(NSString*)description action:(void (^)())action detail:(NSString* (^)())detail
 {
+   return [self itemWithDescription:description association:nil action:action detail:detail];
+}
+
++ (RAMenuItemBasic*)itemWithDescription:(NSString*)description association:(id)userdata action:(void (^)())action detail:(NSString* (^)())detail
+{
    RAMenuItemBasic* item = [RAMenuItemBasic new];
    item.description = description;
+   item.userdata = userdata;
    item.action = action;
    item.detail = detail;
    return item;
@@ -71,14 +77,14 @@
       result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
    
    result.textLabel.text = self.description;
-   result.detailTextLabel.text = self.detail ? self.detail() : nil;
+   result.detailTextLabel.text = self.detail ? self.detail(self.userdata) : nil;
    return result;
 }
 
 - (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
 {
    if (self.action)
-      self.action();
+      self.action(self.userdata);
 }
 
 @end
@@ -262,7 +268,7 @@
          @[ @"",
             [RAMenuItemBasic itemWithDescription:@"Choose Core"
                action:^{ [self chooseCore];   }
-               detail:^{ return self.core ? self.core.description : @"None Selected"; }],
+               detail:^{ return self.core ? apple_get_core_display_name(self.core) : @"None Selected"; }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ [self loadGame];     }],
@@ -276,7 +282,7 @@
 
 - (void)chooseCore
 {
-   [self.navigationController pushViewController:[[RAModuleList alloc] initWithGame:@"" delegate:self] animated:YES];
+   [self.navigationController pushViewController:[[RACoreList alloc] initWithGame:@"" delegate:self] animated:YES];
 }
 
 - (void)loadGame
@@ -293,7 +299,7 @@
    [self.navigationController pushViewController:[RAFrontendSettingsMenu new] animated:YES];
 }
 
-- (bool)moduleList:(id)list itemWasSelected:(RAModuleInfo *)module
+- (bool)coreList:(id)list itemWasSelected:(NSString*)module
 {
    self.core = module;
    [self.tableView reloadData];
@@ -332,11 +338,13 @@ static const void* const associated_core_key = &associated_core_key;
       [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config"
          action: ^{ [self showCoreConfigFor:nil]; }]];
 
-      NSArray* coreList = apple_get_modules();
-      for (RAModuleInfo* i in coreList)
-         [cores addObject:[RAMenuItemBasic itemWithDescription:i.description
-            action: ^{ [self showCoreConfigFor:i]; }
-            detail: ^{ return i.hasCustomConfig ? @"[Custom]" : @"[Global]"; }]];
+      const core_info_list_t* core_list = apple_core_info_list_get();
+      for (int i = 0; i < core_list->count; i ++)
+         [cores addObject:[RAMenuItemBasic itemWithDescription:@(core_list->list[i].display_name)
+            association:apple_get_core_id(&core_list->list[i])
+            action: ^(id userdata) { [self showCoreConfigFor:userdata]; }
+            detail: 0]];
+//TODO            detail: ^(id userdata){ return hasCustomConfig ? @"[Custom]" : @"[Global]"; }]];
   
       self.sections =
       (id)@[
@@ -364,9 +372,10 @@ static const void* const associated_core_key = &associated_core_key;
    return self;
 }
 
-- (void)showCoreConfigFor:(RAModuleInfo*)core
+- (void)showCoreConfigFor:(NSString*)core
 {
-   if (core && !core.hasCustomConfig)
+//TODO
+/*   if (core && !core.hasCustomConfig)
    {
       UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"RetroArch"
                                                       message:@"No custom configuration for this core exists, "
@@ -377,13 +386,14 @@ static const void* const associated_core_key = &associated_core_key;
       objc_setAssociatedObject(alert, associated_core_key, core, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
       [alert show];
    }
-   else
+   else*/
       [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
 }
 
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
 {
-   RAModuleInfo* core = objc_getAssociatedObject(alertView, associated_core_key);
+// TODO
+/*   RAModuleInfo* core = objc_getAssociatedObject(alertView, associated_core_key);
       
    if (buttonIndex == alertView.firstOtherButtonIndex && core)
    {
@@ -392,6 +402,7 @@ static const void* const associated_core_key = &associated_core_key;
    }
    
    [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
+*/
 }
 
 @end
@@ -403,14 +414,14 @@ static const void* const associated_core_key = &associated_core_key;
 /*********************************************/
 @implementation RACoreSettingsMenu
 
-- (id)initWithCore:(RAModuleInfo*)core
+- (id)initWithCore:(NSString*)core
 {
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
       setting_data_reset();
       
       self.core = core;
-      self.title = self.core ? self.core.description : @"Global Core Settings";
+      self.title = self.core ? apple_get_core_display_name(core) : @"Global Core Config";
    
       NSMutableArray* settings = [NSMutableArray arrayWithObjects:@"", nil];
       [self.sections addObject:settings];

@@ -71,6 +71,19 @@ bool path_make_and_check_directory(const char* path, mode_t mode, int amode)
    return access(path, amode) == 0;
 }
 
+// Get a core id as an NSString
+NSString* apple_get_core_id(const core_info_t* core)
+{
+   char buf[PATH_MAX];
+   return @(apple_core_info_get_id(core, buf, sizeof(buf)));
+}
+
+NSString* apple_get_core_display_name(NSString* core_id)
+{
+   const core_info_t* core = apple_core_info_list_get_by_id(core_id.UTF8String);
+   return core ? @(core->display_name) : core_id;
+}
+
 // Number formatter class for setting strings
 @implementation RANumberFormatter
 - (id)initWithFloatSupport:(bool)allowFloat minimum:(double)min maximum:(double)max

@@ -16,7 +16,8 @@
 #ifndef _RARCH_APPLE_VIEWS_H
 #define _RARCH_APPLE_VIEWS_H
 
-#import "RAModuleInfo.h"
+#include <UIKit/UIKit.h>
+#include "core_info.h"
 
 // RALogView.m
 @interface RALogView : UITableViewController
@@ -51,23 +52,18 @@
 @end
 
 // browser.m
-@protocol RAModuleListDelegate
-- (bool)moduleList:(id)list itemWasSelected:(RAModuleInfo*)module;
+@protocol RACoreListDelegate
+- (bool)coreList:(id)list itemWasSelected:(NSString*)core;
 @end
 
-@interface RAModuleList : RATableViewController
-@property (nonatomic, weak) id<RAModuleListDelegate> moduleDelegate;
-- (id)initWithGame:(NSString*)path delegate:(id<RAModuleListDelegate>)delegate;
+@interface RACoreList : RATableViewController
+@property (nonatomic, weak) id<RACoreListDelegate> coreDelegate;
+- (id)initWithGame:(NSString*)path delegate:(id<RACoreListDelegate>)delegate;
 @end
 
 // browser.m
 @interface RAFoldersList : RATableViewController
 - (id) initWithFilePath:(NSString*)path;
-@end
-
-// RAModuleInfo.m
-@interface RAModuleInfoList : RATableViewController
-- (id)initWithModuleInfo:(RAModuleInfo*)info;
 @end
 
 #endif

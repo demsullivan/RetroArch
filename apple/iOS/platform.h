@@ -30,8 +30,8 @@
 
 + (RetroArch_iOS*)get;
 
-- (void)loadingCore:(RAModuleInfo*)core withFile:(const char*)file;
-- (void)unloadingCore:(RAModuleInfo*)core;
+- (void)loadingCore:(NSString*)core withFile:(const char*)file;
+- (void)unloadingCore:(NSString*)core;
 
 - (void)refreshSystemConfig;
 

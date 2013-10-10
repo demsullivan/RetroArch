@@ -170,7 +170,10 @@ static void handle_touch_event(NSArray* touches)
       [self pushViewController:[RAMainMenu new] animated:YES];
    
    // Warn if there are no cores present
-   if (apple_get_modules().count == 0)
+   apple_core_info_set_core_path(self.coreDirectory.UTF8String);
+   const core_info_list_t* core_list = apple_core_info_list_get();
+   
+   if (!core_list || core_list->count == 0)
       apple_display_alert(@"No libretro cores were found. You will not be able to play any games.", 0);
 }
 
@@ -252,17 +255,17 @@ static void handle_touch_event(NSArray* touches)
 
 
 #pragma mark RetroArch_Platform
-- (void)loadingCore:(RAModuleInfo*)core withFile:(const char*)file
+- (void)loadingCore:(NSString*)core withFile:(const char*)file
 {
    [self pushViewController:RAGameView.get animated:NO];
-//   [RASettingsList refreshModuleConfig:core];
+//TODO   [RASettingsList refreshModuleConfig:core];
 
    btpad_set_inquiry_state(false);
 
    [self refreshSystemConfig];
 }
 
-- (void)unloadingCore:(RAModuleInfo*)core
+- (void)unloadingCore:(NSString*)core
 {
    [self popToViewController:[RAGameView get] animated:NO];
    [self popViewControllerAnimated:NO];

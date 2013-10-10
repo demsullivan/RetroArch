@@ -39,8 +39,9 @@
 /*********************************************/
 @interface RAMenuItemBasic : NSObject<RAMenuItemBase>
 @property (nonatomic) NSString* description;
-@property (nonatomic, strong) void (^action)();
-@property (nonatomic, strong) NSString* (^detail)();
+@property (nonatomic) id userdata;
+@property (copy) void (^action)(id userdata);
+@property (copy) NSString* (^detail)(id userdata);
 @end
 
 /*********************************************/
@@ -76,8 +77,8 @@
 /* Menu object that is displayed immediately */
 /* after startup.                            */
 /*********************************************/
-@interface RAMainMenu : RAMenuBase<RAModuleListDelegate, RADirectoryListDelegate>
-@property (nonatomic) RAModuleInfo* core;
+@interface RAMainMenu : RAMenuBase<RACoreListDelegate, RADirectoryListDelegate>
+@property (nonatomic) NSString* core;
 @property (nonatomic) NSString* path;
 @end
 
@@ -95,8 +96,8 @@
 /* editing of the setting_data list.         */
 /*********************************************/
 @interface RACoreSettingsMenu : RAMenuBase
-@property RAModuleInfo* core;
-- (id)initWithCore:(RAModuleInfo*)core;
+@property (nonatomic) NSString* core;
+- (id)initWithCore:(NSString*)core;
 @end
 
 #endif

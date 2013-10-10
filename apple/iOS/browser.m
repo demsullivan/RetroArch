@@ -263,33 +263,24 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
 
 @end
 
-@implementation RAModuleList
-- (id)initWithGame:(NSString*)path delegate:(id<RAModuleListDelegate>)delegate
+@implementation RACoreList
+- (id)initWithGame:(NSString*)path delegate:(id<RACoreListDelegate>)delegate
 {
-   self = [super initWithStyle:UITableViewStyleGrouped];
-   
-   if (self)
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
-      [self setTitle:path ? [path lastPathComponent] : @"Cores"];
-      _moduleDelegate = delegate;
+      core_info_list_t* core_list = core_info_list_new(apple_platform.coreDirectory.UTF8String);
+      NSMutableArray* core_section = [NSMutableArray arrayWithObject:@"Cores"];
 
-      // Load the modules with their data
-      NSArray* moduleList = apple_get_modules();
+      self.title = @"Choose Core";
+      _coreDelegate = delegate;
 
-      NSMutableArray* supported = [NSMutableArray arrayWithObject:@"Suggested Cores"];
-      NSMutableArray* other = [NSMutableArray arrayWithObject:@"Other Cores"];
-   
-      for (RAModuleInfo* i in moduleList)
+//      if (!path)
       {
-         if (path && [i supportsFileAtPath:path]) [supported addObject:i];
-         else                                     [other     addObject:i];
+         for (int i = 0; i < core_list->count; i ++)
+            [core_section addObject:apple_get_core_id(&core_list->list[i])];
+
+         [self.sections addObject:core_section];
       }
-
-      if (supported.count > 1)
-         [self.sections addObject:supported];
-
-      if (other.count > 1)
-         [self.sections addObject:other];
    }
 
    return self;
@@ -297,21 +288,16 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
 
 - (void)tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath
 {
-   [self.moduleDelegate moduleList:self itemWasSelected:[self itemForIndexPath:indexPath]];
+   [self.coreDelegate coreList:self itemWasSelected:[self itemForIndexPath:indexPath]];
 }
 
 - (void)infoButtonTapped:(id)sender
 {
-   RAModuleInfo* info = objc_getAssociatedObject(sender, associated_module_key);
-   if (info && info.data)
-      [self.navigationController pushViewController:[[RAModuleInfoList alloc] initWithModuleInfo:info] animated:YES];
-   else
-      apple_display_alert(@"No information available.", 0);
 }
 
 - (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
 {
-   static NSString* const cell_id = @"module";
+   static NSString* const cell_id = @"core";
 
    UITableViewCell* cell = nil;
    if ([self getCellFor:cell_id withStyle:UITableViewCellStyleDefault result:&cell])
@@ -321,10 +307,8 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
       cell.accessoryView = infoButton;
    }
    
-   RAModuleInfo* info = (RAModuleInfo*)[self itemForIndexPath:indexPath];
-   cell.textLabel.text = info.description;
-   objc_setAssociatedObject(cell.accessoryView, associated_module_key, info, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-
+   NSString* path = [self itemForIndexPath:indexPath];
+   cell.textLabel.text = apple_get_core_display_name(path);
    return cell;
 }
 @end

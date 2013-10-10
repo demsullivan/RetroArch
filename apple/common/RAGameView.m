@@ -56,6 +56,7 @@
 
 #ifdef IOS
 
+#include <GLKit/GLKit.h>
 #import "views.h"
 static const float ALMOST_INVISIBLE = .021f;
 static GLKView* g_view;
