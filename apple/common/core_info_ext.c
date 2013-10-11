@@ -35,7 +35,7 @@ void apple_core_info_set_config_path(const char* config_path)
       *core_config_path = '\0';
 }
 
-const core_info_list_t* apple_core_info_list_get()
+core_info_list_t* apple_core_info_list_get()
 {
    if (!global_core_list)
       RARCH_WARN("apple_core_info_list_get() called before apple_core_info_set_core_path()");

@@ -268,18 +268,32 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
 {
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
-      core_info_list_t* core_list = core_info_list_new(apple_platform.coreDirectory.UTF8String);
       NSMutableArray* core_section = [NSMutableArray arrayWithObject:@"Cores"];
+      [self.sections addObject:core_section];
 
       self.title = @"Choose Core";
       _coreDelegate = delegate;
 
-//      if (!path)
+      core_info_list_t* core_list = apple_core_info_list_get();
+      if (core_list)
       {
-         for (int i = 0; i < core_list->count; i ++)
-            [core_section addObject:apple_get_core_id(&core_list->list[i])];
-
-         [self.sections addObject:core_section];
+         if (!path)
+         {
+            for (int i = 0; i < core_list->count; i ++)
+               [core_section addObject:apple_get_core_id(&core_list->list[i])];
+         }
+         else
+         {
+            const core_info_t* core_support;
+            size_t core_count;
+            core_info_list_get_supported_cores(core_list, path.UTF8String, &core_support, &core_count);
+            
+            if (core_count == 1)
+               [_coreDelegate coreList:self itemWasSelected:apple_get_core_id(&core_support[0])];
+            else if (core_count > 1)
+               for (int i = 0; i < core_count; i ++)
+                  [core_section addObject:apple_get_core_id(&core_support[i])];
+         }
       }
    }
 

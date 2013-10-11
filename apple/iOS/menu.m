@@ -256,6 +256,10 @@
 /* Menu object that is displayed immediately */
 /* after startup.                            */
 /*********************************************/
+@interface RAMainMenu()
+@property bool useAutoDetect;
+@end
+
 @implementation RAMainMenu
 
 - (id)init
@@ -268,11 +272,11 @@
       (id)@[
          @[ @"",
             [RAMenuItemBasic itemWithDescription:@"Choose Core"
-               action:^{ [self chooseCore];   }
+               action:^{ self.useAutoDetect = false; [self chooseCore]; }
                detail:^{ return self.core ? apple_get_core_display_name(self.core) : @"None Selected"; }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ [self loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ self.useAutoDetect = false; [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ [self loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ self.useAutoDetect = true;  [self loadGame];     }],
             [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [self showSettings]; }]
          ]
       ];
@@ -283,7 +287,7 @@
 
 - (void)chooseCore
 {
-   [self.navigationController pushViewController:[[RACoreList alloc] initWithGame:@"" delegate:self] animated:YES];
+   [self.navigationController pushViewController:[[RACoreList alloc] initWithGame:nil delegate:self] animated:YES];
 }
 
 - (void)loadGame
@@ -304,7 +308,12 @@
 {
    self.core = module;
    [self.tableView reloadData];
-   [self.navigationController popViewControllerAnimated:YES];
+   
+   if (!self.useAutoDetect)
+      [self.navigationController popViewControllerAnimated:YES];
+   else
+      apple_run_core(self.core, self.path.UTF8String);
+
    return true;
 }
 
@@ -313,9 +322,13 @@
    if (!path.isDirectory)
    {
       self.path = path.path;
-      apple_run_core(self.core, self.path.UTF8String);
+      
+      if (!self.useAutoDetect)
+         apple_run_core(self.core, self.path.UTF8String);
+      else
+         [self.navigationController pushViewController:[[RACoreList alloc] initWithGame:path.path delegate:self] animated:YES];
    }
-   
+
    return true;
 }
 
