@@ -266,18 +266,20 @@
 {
    if ((self = [super initWithStyle:UITableViewStylePlain]))
    {
+      RAMainMenu* __weak weakSelf = self;
+   
       self.title = @"RetroArch";
    
       self.sections =
       (id)@[
          @[ @"",
             [RAMenuItemBasic itemWithDescription:@"Choose Core"
-               action:^{ self.useAutoDetect = false; [self chooseCore]; }
-               detail:^{ return self.core ? apple_get_core_display_name(self.core) : @"None Selected"; }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ self.useAutoDetect = false; [self loadGame];     }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [self loadGame];     }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ self.useAutoDetect = true;  [self loadGame];     }],
-            [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [self showSettings]; }]
+               action:^{ weakSelf.useAutoDetect = false; [self chooseCore]; }
+               detail:^{ return weakSelf.core ? apple_get_core_display_name(self.core) : @"None Selected"; }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ weakSelf.useAutoDetect = false; [weakSelf loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [weakSelf loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ weakSelf.useAutoDetect = true;  [weakSelf loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [weakSelf showSettings]; }]
          ]
       ];
    }
@@ -348,22 +350,24 @@ static const void* const associated_core_key = &associated_core_key;
 {
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
+      RAFrontendSettingsMenu* __weak weakSelf = self;
+   
       NSMutableArray* cores = [NSMutableArray arrayWithObject:@"Cores"];
       [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config"
-         action: ^{ [self showCoreConfigFor:nil]; }]];
+         action: ^{ [weakSelf showCoreConfigFor:nil]; }]];
 
       const core_info_list_t* core_list = apple_core_info_list_get();
       for (int i = 0; i < core_list->count; i ++)
          [cores addObject:[RAMenuItemBasic itemWithDescription:@(core_list->list[i].display_name)
             association:apple_get_core_id(&core_list->list[i])
-            action: ^(id userdata) { [self showCoreConfigFor:userdata]; }
+            action: ^(id userdata) { [weakSelf showCoreConfigFor:userdata]; }
             detail: ^(id userdata) { return apple_core_info_has_custom_config([userdata UTF8String]) ? @"[Custom]" : @"[Global]"; }]];
   
       self.sections =
       (id)@[
          @[ @"Frontend",
             [RAMenuItemBasic itemWithDescription:@"Diagnostic Log"
-               action: ^{ [self.navigationController pushViewController:[RALogView new] animated:YES]; }],
+               action: ^{ [weakSelf.navigationController pushViewController:[RALogView new] animated:YES]; }],
             [RAMenuItemBasic itemWithDescription:@"TV Mode" action:^{ }]
          ],
          
@@ -387,7 +391,7 @@ static const void* const associated_core_key = &associated_core_key;
 
 - (void)showCoreConfigFor:(NSString*)core
 {
-   if (!apple_core_info_has_custom_config(core.UTF8String))
+   if (core && !apple_core_info_has_custom_config(core.UTF8String))
    {
       UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"RetroArch"
                                                       message:@"No custom configuration for this core exists, "
@@ -426,26 +430,40 @@ static const void* const associated_core_key = &associated_core_key;
 /* Menu object that displays and allows      */
 /* editing of the setting_data list.         */
 /*********************************************/
+@interface RACoreSettingsMenu()
+@property (nonatomic) NSString* pathToSave; // < Leave nil to not save
+@end
+
 @implementation RACoreSettingsMenu
 
 - (id)initWithCore:(NSString*)core
 {
+   char buffer[PATH_MAX];
+
+   RACoreSettingsMenu* __weak weakSelf = self;
+
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
+      if (apple_core_info_has_custom_config(core.UTF8String))
+         _pathToSave = @(apple_core_info_get_custom_config(core.UTF8String, buffer, sizeof(buffer)));
+      else
+         _pathToSave = apple_platform.globalConfigFile;
+      
       setting_data_reset();
+      setting_data_load_config_path(_pathToSave.UTF8String);
       
       self.core = core;
       self.title = self.core ? apple_get_core_display_name(core) : @"Global Core Config";
    
       NSMutableArray* settings = [NSMutableArray arrayWithObjects:@"", nil];
       [self.sections addObject:settings];
-      
+
       const rarch_setting_t* setting_data = setting_data_get_list();
       for (const rarch_setting_t* i = setting_data; i->type != ST_NONE; i ++)
          if (i->type == ST_GROUP)
             [settings addObject:[RAMenuItemBasic itemWithDescription:@(i->name) action:
             ^{
-               [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithGroup:i] animated:YES];
+               [weakSelf.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithGroup:i] animated:YES];
             }]];
    }
    
@@ -479,6 +497,12 @@ static const void* const associated_core_key = &associated_core_key;
    }
 
    return self;
+}
+
+- (void)dealloc
+{
+   if (self.pathToSave)
+      setting_data_save_config_path(self.pathToSave.UTF8String);
 }
 
 @end
