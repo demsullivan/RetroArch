@@ -19,8 +19,14 @@
 #include "core_info.h"
 
 void apple_core_info_set_core_path(const char* core_path);
+void apple_core_info_set_config_path(const char* config_path);
+
 const core_info_list_t* apple_core_info_list_get();
 const core_info_t* apple_core_info_list_get_by_id(const char* core_id);
 const char* apple_core_info_get_id(const core_info_t* info, char* buffer, size_t buffer_length);
 
+const char* apple_core_info_get_custom_config(const char* core_id, char* buffer, size_t buffer_length);
+bool apple_core_info_has_custom_config(const char* core_id);
+
 #endif
+

@@ -13,6 +13,7 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <objc/runtime.h>
 #include "apple/common/RetroArch_Apple.h"
 #include "menu.h"
 
@@ -343,8 +344,7 @@ static const void* const associated_core_key = &associated_core_key;
          [cores addObject:[RAMenuItemBasic itemWithDescription:@(core_list->list[i].display_name)
             association:apple_get_core_id(&core_list->list[i])
             action: ^(id userdata) { [self showCoreConfigFor:userdata]; }
-            detail: 0]];
-//TODO            detail: ^(id userdata){ return hasCustomConfig ? @"[Custom]" : @"[Global]"; }]];
+            detail: ^(id userdata) { return apple_core_info_has_custom_config([userdata UTF8String]) ? @"[Custom]" : @"[Global]"; }]];
   
       self.sections =
       (id)@[
@@ -374,8 +374,7 @@ static const void* const associated_core_key = &associated_core_key;
 
 - (void)showCoreConfigFor:(NSString*)core
 {
-//TODO
-/*   if (core && !core.hasCustomConfig)
+   if (!apple_core_info_has_custom_config(core.UTF8String))
    {
       UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"RetroArch"
                                                       message:@"No custom configuration for this core exists, "
@@ -386,23 +385,25 @@ static const void* const associated_core_key = &associated_core_key;
       objc_setAssociatedObject(alert, associated_core_key, core, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
       [alert show];
    }
-   else*/
+   else
       [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
 }
 
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
 {
-// TODO
-/*   RAModuleInfo* core = objc_getAssociatedObject(alertView, associated_core_key);
-      
-   if (buttonIndex == alertView.firstOtherButtonIndex && core)
+   NSString* core_id = objc_getAssociatedObject(alertView, associated_core_key);
+   
+   if (buttonIndex == alertView.firstOtherButtonIndex && core_id)
    {
-      [core createCustomConfig];
+      char path[PATH_MAX];
+      apple_core_info_get_custom_config(core_id.UTF8String, path, sizeof(path));
+   
+      if (![[NSFileManager defaultManager] copyItemAtPath:apple_platform.globalConfigFile toPath:@(path) error:nil])
+         RARCH_WARN("Could not create custom config at %s", path);
       [self.tableView reloadData];
    }
-   
-   [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
-*/
+
+   [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core_id] animated:YES];
 }
 
 @end

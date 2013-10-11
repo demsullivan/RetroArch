@@ -16,6 +16,7 @@
 #include "core_info_ext.h"
 
 static core_info_list_t* global_core_list = 0;
+static char core_config_path[PATH_MAX];
 
 void apple_core_info_set_core_path(const char* core_path)
 {
@@ -26,6 +27,12 @@ void apple_core_info_set_core_path(const char* core_path)
 
    if (!global_core_list)
       RARCH_WARN("No cores were found at %s", core_path ? core_path : "(null");
+}
+
+void apple_core_info_set_config_path(const char* config_path)
+{
+   if (!config_path || strlcpy(core_config_path, config_path, sizeof(core_config_path)) >= PATH_MAX)
+      *core_config_path = '\0';
 }
 
 const core_info_list_t* apple_core_info_list_get()
@@ -60,5 +67,25 @@ const char* apple_core_info_get_id(const core_info_t* info, char* buffer, size_t
 
    *buffer = 0;
    return buffer;
+}
+
+const char* apple_core_info_get_custom_config(const char* core_id, char* buffer, size_t buffer_length)
+{
+   if (!core_id || !buffer || !buffer_length)
+      return 0;
+
+   snprintf(buffer, buffer_length, "%s/%s", core_config_path, path_basename(core_id));
+   fill_pathname(buffer, buffer, ".cfg", buffer_length);
+   return buffer;
+}
+
+bool apple_core_info_has_custom_config(const char* core_id)
+{
+   if (!core_id)
+      return false;
+   
+   char path[PATH_MAX];
+   apple_core_info_get_custom_config(core_id, path, sizeof(path));
+   return path_file_exists(path);
 }
 

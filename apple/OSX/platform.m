@@ -78,6 +78,7 @@ static const void* const associated_core_key = &associated_core_key;
    NSComboBox* cb = (NSComboBox*)[_coreSelectSheet.contentView viewWithTag:1];
    
    apple_core_info_set_core_path(self.coreDirectory.UTF8String);
+   apple_core_info_set_config_path(self.configDirectory.UTF8String);
    const core_info_list_t* cores = apple_core_info_list_get();
    for (int i = 0; cores && i != cores->count; i ++)
    {
