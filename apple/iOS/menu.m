@@ -204,7 +204,6 @@
    return YES;
 }
 
-
 - (void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
 {
    NSString* text = [alertView textFieldAtIndex:0].text;
@@ -276,9 +275,9 @@
             [RAMenuItemBasic itemWithDescription:@"Choose Core"
                action:^{ weakSelf.useAutoDetect = false; [self chooseCore]; }
                detail:^{ return weakSelf.core ? apple_get_core_display_name(self.core) : @"None Selected"; }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ weakSelf.useAutoDetect = false; [weakSelf loadGame];     }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [weakSelf loadGame];     }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ weakSelf.useAutoDetect = true;  [weakSelf loadGame];     }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ weakSelf.useAutoDetect = false; [weakSelf loadGame]; }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [weakSelf loadHistory]; }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ weakSelf.useAutoDetect = true;  [weakSelf loadGame]; }],
             [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [weakSelf showSettings]; }]
          ]
       ];
@@ -299,6 +298,12 @@
    NSString* target = path_is_directory(ragPath.UTF8String) ? ragPath : rootPath;
 
    [self.navigationController pushViewController:[[RADirectoryList alloc] initWithPath:target delegate:self] animated:YES];
+}
+
+- (void)loadHistory
+{
+   NSString* history_path = [NSString stringWithFormat:@"%@/%s", RetroArch_iOS.get.systemDirectory, ".retroarch-game-history.txt"];
+   [self.navigationController pushViewController:[[RAHistoryMenu alloc] initWithHistoryPath:history_path] animated:YES];
 }
 
 - (void)showSettings
@@ -337,7 +342,66 @@
 @end
 
 /*********************************************/
-/* RAFronendSettingsMenu                     */
+/* RAHistoryMenu                             */
+/* Menu object that displays and allows      */
+/* launching a file from the ROM history.    */
+/*********************************************/
+static const char* get_history_index_path(rom_history_t* history, uint32_t index)
+{
+   const char *path, *core_path, *core_name;
+   rom_history_get_index(history, index, &path, &core_path, &core_name);
+   return path ? path : "";
+}
+
+static const char* get_history_index_core_path(rom_history_t* history, uint32_t index)
+{
+   const char *path, *core_path, *core_name;
+   rom_history_get_index(history, index, &path, &core_path, &core_name);
+   return core_path ? core_path : "";
+}
+
+static const char* get_history_index_core_name(rom_history_t* history, uint32_t index)
+{
+   const char *path, *core_path, *core_name;
+   rom_history_get_index(history, index, &path, &core_path, &core_name);
+   return core_name ? core_name : "";
+}
+
+@implementation RAHistoryMenu
+
+- (id)initWithHistoryPath:(NSString *)historyPath
+{
+   if ((self = [super initWithStyle:UITableViewStylePlain]))
+   {
+      RAHistoryMenu* __weak weakSelf = self;
+   
+      _history = rom_history_init(historyPath.UTF8String, 100);
+
+      NSMutableArray* section = [NSMutableArray arrayWithObject:@""];
+      [self.sections addObject:section];
+      
+      for (int i = 0; _history && i != rom_history_size(_history); i ++)
+      {
+         RAMenuItemBasic* item = [RAMenuItemBasic itemWithDescription:@(path_basename(get_history_index_path(weakSelf.history, i)))
+                                                  action:^{ apple_run_core(@(get_history_index_core_path(weakSelf.history, i)),
+                                                                             get_history_index_path(weakSelf.history, i)); }
+                                                  detail:^{ return @(get_history_index_core_name(weakSelf.history, i)); }];
+         [section addObject:item];
+      }
+   }
+   
+   return self;
+}
+
+- (void)dealloc
+{
+   rom_history_free(self.history);
+}
+
+@end
+
+/*********************************************/
+/* RAFrontendSettingsMenu                    */
 /* Menu object that displays and allows      */
 /* editing of cocoa frontend related         */
 /* settings.                                 */

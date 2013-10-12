@@ -16,6 +16,7 @@
 #ifndef __APPLE_RARCH_IOS_MENU_H__
 #define __APPLE_RARCH_IOS_MENU_H__
 
+#include "frontend/menu/history.h"
 #include "views.h"
 #include "apple/common/setting_data.h"
 
@@ -83,7 +84,17 @@
 @end
 
 /*********************************************/
-/* RAFronendSettingsMenu                     */
+/* RAHistoryMenu                             */
+/* Menu object that displays and allows      */
+/* launching a file from the ROM history.    */
+/*********************************************/
+@interface RAHistoryMenu : RAMenuBase
+@property (nonatomic) rom_history_t* history;
+- (id)initWithHistoryPath:(NSString*)historyPath;
+@end
+
+/*********************************************/
+/* RAFrontendSettingsMenu                    */
 /* Menu object that displays and allows      */
 /* editing of cocoa frontend related         */
 /* settings.                                 */
