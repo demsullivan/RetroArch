@@ -282,7 +282,20 @@
 
 - (void)chooseCore
 {
-   [self.navigationController pushViewController:[[RACoreList alloc] initWithGame:nil delegate:self] animated:YES];
+   RAMainMenu* __weak weakSelf = self;
+
+   RAMenuCoreList* list = [[RAMenuCoreList alloc] initWithPath:self.useAutoDetect ? self.path : nil
+      action: ^(NSString* core)
+      {
+         weakSelf.core = core;
+         [weakSelf.tableView reloadData];
+         
+         if (!weakSelf.useAutoDetect)
+            [weakSelf.navigationController popViewControllerAnimated:YES];
+         else
+            apple_run_core(weakSelf.core, weakSelf.path.UTF8String);
+      }];
+   [self.navigationController pushViewController:list animated:YES];
 }
 
 - (void)loadGame
@@ -305,19 +318,6 @@
    [self.navigationController pushViewController:[RAFrontendSettingsMenu new] animated:YES];
 }
 
-- (bool)coreList:(id)list itemWasSelected:(NSString*)module
-{
-   self.core = module;
-   [self.tableView reloadData];
-   
-   if (!self.useAutoDetect)
-      [self.navigationController popViewControllerAnimated:YES];
-   else
-      apple_run_core(self.core, self.path.UTF8String);
-
-   return true;
-}
-
 - (bool)directoryList:(id)list itemWasSelected:(RADirectoryItem*)path
 {
    if (!path.isDirectory)
@@ -327,7 +327,7 @@
       if (!self.useAutoDetect)
          apple_run_core(self.core, self.path.UTF8String);
       else
-         [self.navigationController pushViewController:[[RACoreList alloc] initWithGame:path.path delegate:self] animated:YES];
+         [self chooseCore];
    }
 
    return true;
@@ -541,5 +541,86 @@ static const void* const associated_core_key = &associated_core_key;
    if (self.pathToSave)
       setting_data_save_config_path(self.pathToSave.UTF8String);
 }
+
+@end
+
+///
+@implementation RAMenuItemCoreList
+
+- (id)initWithCore:(NSString*)core parent:(RAMenuCoreList* __weak)parent
+{
+   if ((self = [super init]))
+   {
+      _core = core;
+      _parent = parent;
+   }
+   
+   return self;
+}
+
+- (UITableViewCell*)cellForTableView:(UITableView*)tableView
+{
+   static NSString* const cell_id = @"RAMenuItemCoreList";
+
+   UITableViewCell* result = [tableView dequeueReusableCellWithIdentifier:cell_id];
+   if (!result)
+   {
+      result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
+//      UIButton* infoButton = [UIButton buttonWithType:UIButtonTypeInfoDark];
+//      [infoButton addTarget:self action:@selector(infoButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+//      result.accessoryView = infoButton;
+   }
+
+   result.textLabel.text = apple_get_core_display_name(self.core);
+   return result;
+}
+
+- (void)wasSelectedOnTableView:(UITableView*)tableView ofController:(UIViewController*)controller
+{
+   if (self.parent.action)
+      self.parent.action(self.core);
+}
+
+@end
+
+@implementation RAMenuCoreList
+
+- (id)initWithPath:(NSString*)path action:(void (^)(NSString *))action
+{
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
+   {
+      self.title = @"Choose Core";
+      _action = action;
+      _path = path;
+
+      NSMutableArray* core_section = [NSMutableArray arrayWithObject:@"Cores"];
+      [self.sections addObject:core_section];
+
+      core_info_list_t* core_list = apple_core_info_list_get();
+      if (core_list)
+      {
+         if (!_path)
+            for (int i = 0; i < core_list->count; i ++)
+               [core_section addObject:[[RAMenuItemCoreList alloc] initWithCore:apple_get_core_id(&core_list->list[i])
+                                                                   parent:self]];
+         else
+         {
+            const core_info_t* core_support;
+            size_t core_count;
+            core_info_list_get_supported_cores(core_list, _path.UTF8String, &core_support, &core_count);
+            
+            if (core_count == 1 && _action)
+               _action(apple_get_core_id(&core_support[0]));
+            else if (core_count > 1)
+               for (int i = 0; i < core_count; i ++)
+                  [core_section addObject:[[RAMenuItemCoreList alloc] initWithCore:apple_get_core_id(&core_support[i])
+                                                                      parent:self]];
+         }
+      }
+   }
+
+   return self;
+}
+
 
 @end

@@ -52,16 +52,6 @@
 @end
 
 // browser.m
-@protocol RACoreListDelegate
-- (bool)coreList:(id)list itemWasSelected:(NSString*)core;
-@end
-
-@interface RACoreList : RATableViewController
-@property (nonatomic, weak) id<RACoreListDelegate> coreDelegate;
-- (id)initWithGame:(NSString*)path delegate:(id<RACoreListDelegate>)delegate;
-@end
-
-// browser.m
 @interface RAFoldersList : RATableViewController
 - (id) initWithFilePath:(NSString*)path;
 @end

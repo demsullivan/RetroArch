@@ -78,7 +78,7 @@
 /* Menu object that is displayed immediately */
 /* after startup.                            */
 /*********************************************/
-@interface RAMainMenu : RAMenuBase<RACoreListDelegate, RADirectoryListDelegate>
+@interface RAMainMenu : RAMenuBase<RADirectoryListDelegate>
 @property (nonatomic) NSString* core;
 @property (nonatomic) NSString* path;
 @end
@@ -111,5 +111,28 @@
 - (id)initWithCore:(NSString*)core;
 @end
 
-#endif
+/*********************************************/
+/* RAMenuItemCoreList                        */
+/* Menu item that handles display and        */
+/* selection of an item in RAMenuCoreList.   */
+/* This item will not function on anything   */
+/* but an RAMenuCoreList type menu.          */
+/*********************************************/
+@class RAMenuCoreList;
+@interface RAMenuItemCoreList : NSObject<RAMenuItemBase>
+@property (nonatomic, weak) RAMenuCoreList* parent;
+@property (nonatomic) NSString* core;
+@end
 
+/*********************************************/
+/* RAMenuCoreList                            */
+/* Menu object that displays and allows      */
+/* selection from a list of cores.           */
+/*********************************************/
+@interface RAMenuCoreList : RAMenuBase
+@property (nonatomic) NSString* path;
+@property (copy) void (^action)(NSString* coreID);
+- (id)initWithPath:(NSString*)path action:(void (^)(NSString*))action;
+@end
+
+#endif
