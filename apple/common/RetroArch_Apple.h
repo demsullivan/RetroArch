@@ -71,6 +71,10 @@ extern NSString* apple_get_core_display_name(NSString* core_id);
 
 // Number formatter class for setting strings
 @interface RANumberFormatter : NSNumberFormatter
+#ifdef IOS
+<UITextFieldDelegate>
+#endif
+
 - (id)initWithFloatSupport:(bool)allowFloat minimum:(double)min maximum:(double)max;
 @end
 

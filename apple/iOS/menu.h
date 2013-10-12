@@ -61,7 +61,7 @@
 /* state, and allows editing, of a string or */
 /* numeric setting.                          */
 /*********************************************/
-@interface RAMenuItemString : NSObject<RAMenuItemBase, UIAlertViewDelegate, UITextFieldDelegate>
+@interface RAMenuItemString : NSObject<RAMenuItemBase, UIAlertViewDelegate>
 @property (nonatomic) const rarch_setting_t* setting;
 @property (nonatomic, weak) UITableView* parentTable;
 @end

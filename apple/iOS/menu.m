@@ -144,12 +144,21 @@
 /* state, and allows editing, of a string or */
 /* numeric setting.                          */
 /*********************************************/
+@interface RAMenuItemString()
+@property (nonatomic) RANumberFormatter* formatter;
+@end
+
 @implementation RAMenuItemString
 
 + (RAMenuItemString*)itemForSetting:(const char*)setting_name
 {
    RAMenuItemString* item = [RAMenuItemString new];
    item.setting = setting_data_find_setting(setting_name);
+   
+   if (item.setting->type == ST_INT || item.setting->type == ST_FLOAT)
+      item.formatter = [[RANumberFormatter alloc] initWithFloatSupport:item.setting->type == ST_FLOAT
+                                                  minimum:item.setting->min maximum:item.setting->max];
+   
    return item;
 }
 
@@ -183,25 +192,10 @@
    UITextField* field = [alertView textFieldAtIndex:0];
    char buffer[256];
    
-   field.delegate = self;
+   field.delegate = self.formatter;
    field.text = @(setting_data_get_string_representation(self.setting, buffer, sizeof(buffer)));
-   field.keyboardType = (self.setting->type == ST_INT || self.setting->type == ST_FLOAT) ? UIKeyboardTypeDecimalPad : UIKeyboardTypeDefault;
 
    [alertView show];
-}
-
-- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
-{
-   if (self.setting->type == ST_INT || self.setting->type == ST_FLOAT)
-   {
-      RANumberFormatter* formatter = [[RANumberFormatter alloc] initWithFloatSupport:self.setting->type == ST_FLOAT
-                                                                minimum:self.setting->min maximum:self.setting->max];
-
-      NSString* result = [textField.text stringByReplacingCharactersInRange:range withString:string];
-      return [formatter isPartialStringValid:result newEditingString:nil errorDescription:nil];
-   }
-
-   return YES;
 }
 
 - (void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
@@ -346,27 +340,6 @@
 /* Menu object that displays and allows      */
 /* launching a file from the ROM history.    */
 /*********************************************/
-static const char* get_history_index_path(rom_history_t* history, uint32_t index)
-{
-   const char *path, *core_path, *core_name;
-   rom_history_get_index(history, index, &path, &core_path, &core_name);
-   return path ? path : "";
-}
-
-static const char* get_history_index_core_path(rom_history_t* history, uint32_t index)
-{
-   const char *path, *core_path, *core_name;
-   rom_history_get_index(history, index, &path, &core_path, &core_name);
-   return core_path ? core_path : "";
-}
-
-static const char* get_history_index_core_name(rom_history_t* history, uint32_t index)
-{
-   const char *path, *core_path, *core_name;
-   rom_history_get_index(history, index, &path, &core_path, &core_name);
-   return core_name ? core_name : "";
-}
-
 @implementation RAHistoryMenu
 
 - (id)initWithHistoryPath:(NSString *)historyPath
@@ -382,10 +355,10 @@ static const char* get_history_index_core_name(rom_history_t* history, uint32_t 
       
       for (int i = 0; _history && i != rom_history_size(_history); i ++)
       {
-         RAMenuItemBasic* item = [RAMenuItemBasic itemWithDescription:@(path_basename(get_history_index_path(weakSelf.history, i)))
-                                                  action:^{ apple_run_core(@(get_history_index_core_path(weakSelf.history, i)),
-                                                                             get_history_index_path(weakSelf.history, i)); }
-                                                  detail:^{ return @(get_history_index_core_name(weakSelf.history, i)); }];
+         RAMenuItemBasic* item = [RAMenuItemBasic itemWithDescription:@(path_basename(apple_rom_history_get_path(weakSelf.history, i)))
+                                                  action:^{ apple_run_core(@(apple_rom_history_get_core_path(weakSelf.history, i)),
+                                                                             apple_rom_history_get_path(weakSelf.history, i)); }
+                                                  detail:^{ return @(apple_rom_history_get_core_name(weakSelf.history, i)); }];
          [section addObject:item];
       }
    }

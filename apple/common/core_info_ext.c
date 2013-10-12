@@ -89,3 +89,26 @@ bool apple_core_info_has_custom_config(const char* core_id)
    return path_file_exists(path);
 }
 
+// ROM HISTORY EXTENSIONS
+const char* apple_rom_history_get_path(rom_history_t* history, uint32_t index)
+{
+   const char *path, *core_path, *core_name;
+   rom_history_get_index(history, index, &path, &core_path, &core_name);
+   return path ? path : "";
+}
+
+const char* apple_rom_history_get_core_path(rom_history_t* history, uint32_t index)
+{
+   const char *path, *core_path, *core_name;
+   rom_history_get_index(history, index, &path, &core_path, &core_name);
+   return core_path ? core_path : "";
+}
+
+const char* apple_rom_history_get_core_name(rom_history_t* history, uint32_t index)
+{
+   const char *path, *core_path, *core_name;
+   rom_history_get_index(history, index, &path, &core_path, &core_name);
+   return core_name ? core_name : "";
+}
+
+

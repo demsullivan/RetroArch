@@ -17,6 +17,7 @@
 #define __APPLE_RARCH_CORE_INFO_EXT_H__
 
 #include "core_info.h"
+#include "frontend/menu/history.h"
 
 void apple_core_info_set_core_path(const char* core_path);
 void apple_core_info_set_config_path(const char* config_path);
@@ -27,6 +28,12 @@ const char* apple_core_info_get_id(const core_info_t* info, char* buffer, size_t
 
 const char* apple_core_info_get_custom_config(const char* core_id, char* buffer, size_t buffer_length);
 bool apple_core_info_has_custom_config(const char* core_id);
+
+
+// ROM HISTORY EXTENSIONS
+const char* apple_rom_history_get_path(rom_history_t* history, uint32_t index);
+const char* apple_rom_history_get_core_path(rom_history_t* history, uint32_t index);
+const char* apple_rom_history_get_core_name(rom_history_t* history, uint32_t index);
 
 #endif
 

@@ -120,6 +120,15 @@ NSString* apple_get_core_display_name(NSString* core_id)
 
    return YES;
 }
+
+#ifdef IOS
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+{
+   NSString* text = [textField.text stringByReplacingCharactersInRange:range withString:string];
+   return [self isPartialStringValid:text newEditingString:nil errorDescription:nil];
+}
+#endif
+
 @end
 
 
