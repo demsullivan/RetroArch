@@ -74,6 +74,13 @@
 @interface RAMenuItemPathSetting : RAMenuItemString<RAMenuItemBase, RADirectoryListDelegate> @end
 
 /*********************************************/
+/* RAMenuItemBindSetting                     */
+/* A menu item that displays and allows      */
+/* mapping of a keybinding.                  */
+/*********************************************/
+@interface RAMenuItemBindSetting : RAMenuItemString<RAMenuItemBase, UIAlertViewDelegate> @end
+
+/*********************************************/
 /* RAMainMenu                                */
 /* Menu object that is displayed immediately */
 /* after startup.                            */

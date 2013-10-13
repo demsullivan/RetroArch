@@ -17,6 +17,16 @@
 #include "config.def.h"
 
 // Input
+static const char* get_input_config_prefix(const rarch_setting_t* setting)
+{
+   static char buffer[32];
+   if (setting->index)
+      snprintf(buffer, 32, "input_player%d", setting->index);
+   else
+      snprintf(buffer, 32, "input", setting->index);
+   return buffer;
+}
+
 static const char* get_input_config_key(const rarch_setting_t* setting, const char* type)
 {
    static char buffer[32];
@@ -137,9 +147,10 @@ bool setting_data_load_config(config_file_t* config)
          
          case ST_BIND:
          {
-            input_config_parse_key       (config, "input_player1", setting_data[i].name, setting_data[i].value.keybind);
-            input_config_parse_joy_button(config, "input_player1", setting_data[i].name, setting_data[i].value.keybind);
-            input_config_parse_joy_axis  (config, "input_player1", setting_data[i].name, setting_data[i].value.keybind);
+            const char* prefix = get_input_config_prefix(&setting_data[i]);
+            input_config_parse_key       (config, prefix, setting_data[i].name, setting_data[i].value.keybind);
+            input_config_parse_joy_button(config, prefix, setting_data[i].name, setting_data[i].value.keybind);
+            input_config_parse_joy_axis  (config, prefix, setting_data[i].name, setting_data[i].value.keybind);
             break;
          }
          
@@ -300,6 +311,14 @@ static rarch_setting_t string_setting(const char* name, const char* description,
    return result;
 }
 
+static rarch_setting_t bind_setting(const char* name, const char* description, struct retro_keybind* target, uint32_t index)
+{
+   rarch_setting_t result = {ST_BIND, name, 0, description };
+   result.value.keybind = target;
+   result.index = index;
+   return result;
+}
+
 #define DEFAULT_ME_YO 0
 #define NEXT (list[index++])
 #define START_GROUP(NAME)                       NEXT = group_setting (ST_GROUP, NAME);
@@ -312,7 +331,7 @@ static rarch_setting_t string_setting(const char* name, const char* description,
 #define CONFIG_PATH(TARGET, NAME, SHORT, DEF)   NEXT = path_setting  (NAME, SHORT, TARGET, sizeof(TARGET), DEF);
 #define CONFIG_STRING(TARGET, NAME, SHORT, DEF) NEXT = string_setting(NAME, SHORT, TARGET, sizeof(TARGET), DEF);
 #define CONFIG_HEX(TARGET, NAME, SHORT)
-#define CONFIG_BIND(TARGET, PLAYER, NAME, SHORT)
+#define CONFIG_BIND(TARGET, PLAYER, NAME, SHORT)NEXT = bind_setting  (NAME, SHORT, &TARGET, PLAYER);
 
 // TODO: Add black_frame_insertion, swap_interval msg_color video.rotation audio.block_frames audio.in_rate fast_forward_ratio
 //       rgui_show_start_screen

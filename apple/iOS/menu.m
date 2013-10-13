@@ -15,6 +15,7 @@
 
 #include <objc/runtime.h>
 #include "apple/common/RetroArch_Apple.h"
+#include "apple/common/apple_input.h"
 #include "menu.h"
 
 /*********************************************/
@@ -196,6 +197,9 @@
    field.text = @(setting_data_get_string_representation(self.setting, buffer, sizeof(buffer)));
 
    [alertView show];
+  
+   field.selectedTextRange = [field textRangeFromPosition:field.beginningOfDocument toPosition:field.endOfDocument];
+
 }
 
 - (void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
@@ -239,6 +243,83 @@
    [self.parentTable reloadData];
 
    return true;
+}
+
+@end
+
+/*********************************************/
+/* RAMenuItemBindSetting                     */
+/* A menu item that displays and allows      */
+/* mapping of a keybinding.                  */
+/*********************************************/
+@interface RAMenuItemBindSetting()
+@property (nonatomic) NSTimer* bindTimer;
+@property (nonatomic) UIAlertView* alert;
+@end
+
+@implementation RAMenuItemBindSetting
+
++ (RAMenuItemBindSetting*)itemForSetting:(const char*)setting_name
+{
+   RAMenuItemBindSetting* item = [RAMenuItemBindSetting new];
+   item.setting = setting_data_find_setting(setting_name);
+   return item;
+}
+
+- (void)wasSelectedOnTableView:(UITableView *)tableView ofController:(UIViewController *)controller
+{
+   self.alert = [[UIAlertView alloc] initWithTitle:@"RetroArch"
+                                     message:@(self.setting->short_description)
+                                     delegate:self
+                                     cancelButtonTitle:@"Cancel"
+                                     otherButtonTitles:@"Clear Keyboard", @"Clear Joystick", @"Clear Axis", nil];
+   [self.alert show];
+   
+   [self.parentTable reloadData];
+   
+   self.bindTimer = [NSTimer scheduledTimerWithTimeInterval:.1f target:self selector:@selector(checkBind:)
+                             userInfo:nil repeats:YES];
+}
+
+- (void)finishWithClickedButton:(bool)clicked
+{
+   if (!clicked)
+      [self.alert dismissWithClickedButtonIndex:self.alert.cancelButtonIndex animated:YES];
+   self.alert = nil;
+
+
+   [self.parentTable reloadData];
+
+   [self.bindTimer invalidate];
+   self.bindTimer = nil;
+}
+
+- (void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+   if (buttonIndex == alertView.firstOtherButtonIndex)
+      BINDFOR(*self.setting).key = RETROK_UNKNOWN;
+   else if(buttonIndex == alertView.firstOtherButtonIndex + 1)
+      BINDFOR(*self.setting).joykey = NO_BTN;
+   else if(buttonIndex == alertView.firstOtherButtonIndex + 2)
+      BINDFOR(*self.setting).joyaxis = AXIS_NONE;
+   
+   [self finishWithClickedButton:true];
+}
+
+- (void)checkBind:(NSTimer*)send
+{
+   int32_t value = 0;
+
+   if ((value = apple_input_find_any_key()))
+      BINDFOR(*self.setting).key = input_translate_keysym_to_rk(value);
+   else if ((value = apple_input_find_any_button(0)) >= 0)
+      BINDFOR(*self.setting).joykey = value;
+   else if ((value = apple_input_find_any_axis(0)))
+      BINDFOR(*self.setting).joyaxis = (value > 0) ? AXIS_POS(value - 1) : AXIS_NEG(value - 1);
+   else
+      return;
+
+   [self finishWithClickedButton:false];
 }
 
 @end
@@ -530,6 +611,8 @@ static const void* const associated_core_key = &associated_core_key;
             [settings addObject:[RAMenuItemString itemForSetting:i->name]];
          else if (i->type == ST_PATH)
             [settings addObject:[RAMenuItemPathSetting itemForSetting:i->name]];
+         else if (i->type == ST_BIND)
+            [settings addObject:[RAMenuItemBindSetting itemForSetting:i->name]];
       }
    }
 
@@ -544,7 +627,13 @@ static const void* const associated_core_key = &associated_core_key;
 
 @end
 
-///
+/*********************************************/
+/* RAMenuItemCoreList                        */
+/* Menu item that handles display and        */
+/* selection of an item in RAMenuCoreList.   */
+/* This item will not function on anything   */
+/* but an RAMenuCoreList type menu.          */
+/*********************************************/
 @implementation RAMenuItemCoreList
 
 - (id)initWithCore:(NSString*)core parent:(RAMenuCoreList* __weak)parent
@@ -583,6 +672,11 @@ static const void* const associated_core_key = &associated_core_key;
 
 @end
 
+/*********************************************/
+/* RAMenuCoreList                            */
+/* Menu object that displays and allows      */
+/* selection from a list of cores.           */
+/*********************************************/
 @implementation RAMenuCoreList
 
 - (id)initWithPath:(NSString*)path action:(void (^)(NSString *))action
@@ -600,21 +694,17 @@ static const void* const associated_core_key = &associated_core_key;
       if (core_list)
       {
          if (!_path)
-            for (int i = 0; i < core_list->count; i ++)
-               [core_section addObject:[[RAMenuItemCoreList alloc] initWithCore:apple_get_core_id(&core_list->list[i])
-                                                                   parent:self]];
+            [self load:core_list->count coresFromList:core_list->list toSection:core_section];
          else
          {
-            const core_info_t* core_support;
-            size_t core_count;
+            const core_info_t* core_support = 0;
+            size_t core_count = 0;
             core_info_list_get_supported_cores(core_list, _path.UTF8String, &core_support, &core_count);
             
             if (core_count == 1 && _action)
                _action(apple_get_core_id(&core_support[0]));
             else if (core_count > 1)
-               for (int i = 0; i < core_count; i ++)
-                  [core_section addObject:[[RAMenuItemCoreList alloc] initWithCore:apple_get_core_id(&core_support[i])
-                                                                      parent:self]];
+               [self load:core_count coresFromList:core_support toSection:core_section];
          }
       }
    }
@@ -622,5 +712,10 @@ static const void* const associated_core_key = &associated_core_key;
    return self;
 }
 
+- (void)load:(uint32_t)count coresFromList:(const core_info_t*)list toSection:(NSMutableArray*)array
+{
+   for (int i = 0; i < count; i ++)
+      [array addObject:[[RAMenuItemCoreList alloc] initWithCore:apple_get_core_id(&list[i]) parent:self]];
+}
 
 @end

@@ -109,6 +109,8 @@ void apple_input_handle_key_event(unsigned keycode, bool down)
 
 int32_t apple_input_find_any_key()
 {
+   input_init_keyboard_lut(apple_key_map_hidusage);
+
    for (int i = 0; apple_key_name_map[i].hid_id; i++)
       if (g_current_input_data.keys[apple_key_name_map[i].hid_id])
          return apple_key_name_map[i].hid_id;
