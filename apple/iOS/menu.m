@@ -330,10 +330,6 @@
 /* Menu object that is displayed immediately */
 /* after startup.                            */
 /*********************************************/
-@interface RAMainMenu()
-@property bool useAutoDetect;
-@end
-
 @implementation RAMainMenu
 
 - (id)init
@@ -348,11 +344,10 @@
       (id)@[
          @[ @"",
             [RAMenuItemBasic itemWithDescription:@"Choose Core"
-               action:^{ weakSelf.useAutoDetect = false; [self chooseCore]; }
-               detail:^{ return weakSelf.core ? apple_get_core_display_name(self.core) : @"None Selected"; }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Core)"          action:^{ weakSelf.useAutoDetect = false; [weakSelf loadGame]; }],
+               action:^{ [weakSelf chooseCoreWithPath:nil]; }
+               detail:^{ return weakSelf.core ? apple_get_core_display_name(weakSelf.core) : @"Auto Detect"; }],
+            [RAMenuItemBasic itemWithDescription:@"Load Game"                 action:^{ [weakSelf loadGame]; }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [weakSelf loadHistory]; }],
-            [RAMenuItemBasic itemWithDescription:@"Load Game (Detect Core)"   action:^{ weakSelf.useAutoDetect = true;  [weakSelf loadGame]; }],
             [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [weakSelf showSettings]; }]
          ]
       ];
@@ -361,20 +356,20 @@
    return self;
 }
 
-- (void)chooseCore
+- (void)chooseCoreWithPath:(NSString*)path
 {
    RAMainMenu* __weak weakSelf = self;
 
-   RAMenuCoreList* list = [[RAMenuCoreList alloc] initWithPath:self.useAutoDetect ? self.path : nil
+   RAMenuCoreList* list = [[RAMenuCoreList alloc] initWithPath:path
       action: ^(NSString* core)
       {
          weakSelf.core = core;
          [weakSelf.tableView reloadData];
          
-         if (!weakSelf.useAutoDetect)
+         if (!path)
             [weakSelf.navigationController popViewControllerAnimated:YES];
          else
-            apple_run_core(weakSelf.core, weakSelf.path.UTF8String);
+            apple_run_core(weakSelf.core, path.UTF8String);
       }];
    [self.navigationController pushViewController:list animated:YES];
 }
@@ -403,12 +398,10 @@
 {
    if (!path.isDirectory)
    {
-      self.path = path.path;
-      
-      if (!self.useAutoDetect)
-         apple_run_core(self.core, self.path.UTF8String);
+      if (self.core)
+         apple_run_core(self.core, path.path.UTF8String);
       else
-         [self chooseCore];
+         [self chooseCoreWithPath:path.path];
    }
 
    return true;
@@ -679,6 +672,12 @@ static const void* const associated_core_key = &associated_core_key;
 /* RAMenuCoreList                            */
 /* Menu object that displays and allows      */
 /* selection from a list of cores.           */
+/* If the path is not nil, only cores that   */
+/* may support the file is listed.           */
+/* If the path is nil, an 'Auto Detect'      */
+/* entry is added to the menu, when tapped   */
+/* the action function will be called with   */
+/* nil as the argument.                      */
 /*********************************************/
 @implementation RAMenuCoreList
 
@@ -689,6 +688,13 @@ static const void* const associated_core_key = &associated_core_key;
       self.title = @"Choose Core";
       _action = action;
       _path = path;
+
+      if (!_path)
+      {
+         RAMenuCoreList* __weak weakSelf = self;
+         [self.sections addObject: @[@"", [RAMenuItemBasic itemWithDescription:@"Auto Detect"
+               action: ^{ if(weakSelf.action) weakSelf.action(nil); }]]];
+      }
 
       NSMutableArray* core_section = [NSMutableArray arrayWithObject:@"Cores"];
       [self.sections addObject:core_section];

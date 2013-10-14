@@ -87,7 +87,6 @@
 /*********************************************/
 @interface RAMainMenu : RAMenuBase<RADirectoryListDelegate>
 @property (nonatomic) NSString* core;
-@property (nonatomic) NSString* path;
 @end
 
 /*********************************************/
@@ -135,6 +134,12 @@
 /* RAMenuCoreList                            */
 /* Menu object that displays and allows      */
 /* selection from a list of cores.           */
+/* If the path is not nil, only cores that   */
+/* may support the file is listed.           */
+/* If the path is nil, an 'Auto Detect'      */
+/* entry is added to the menu, when tapped   */
+/* the action function will be called with   */
+/* nil as the argument.                      */
 /*********************************************/
 @interface RAMenuCoreList : RAMenuBase
 @property (nonatomic) NSString* path;
