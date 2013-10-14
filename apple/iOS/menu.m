@@ -570,6 +570,9 @@ static const void* const associated_core_key = &associated_core_key;
       setting_data_reset();
       setting_data_load_config_path(_pathToSave.UTF8String);
       
+      // HACK: Load the key mapping table
+      apple_input_find_any_key(0);
+      
       self.core = core;
       self.title = self.core ? apple_get_core_display_name(core) : @"Global Core Config";
    

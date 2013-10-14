@@ -110,6 +110,7 @@ void setting_data_reset()
          case ST_BOOL:   *i->value.boolean  = i->default_value.boolean;  break;
          case ST_INT:    *i->value.integer  = i->default_value.integer;  break;
          case ST_FLOAT:  *i->value.fraction = i->default_value.fraction; break;
+         case ST_BIND:   *i->value.keybind  = *i->default_value.keybind; break;
          default: break;
       }
    }
@@ -311,10 +312,12 @@ static rarch_setting_t string_setting(const char* name, const char* description,
    return result;
 }
 
-static rarch_setting_t bind_setting(const char* name, const char* description, struct retro_keybind* target, uint32_t index)
+static rarch_setting_t bind_setting(const char* name, const char* description, struct retro_keybind* target, uint32_t index,
+                                    const struct retro_keybind* default_value)
 {
-   rarch_setting_t result = {ST_BIND, name, 0, description };
+   rarch_setting_t result = { ST_BIND, name, 0, description };
    result.value.keybind = target;
+   result.default_value.keybind = default_value;
    result.index = index;
    return result;
 }
@@ -331,7 +334,8 @@ static rarch_setting_t bind_setting(const char* name, const char* description, s
 #define CONFIG_PATH(TARGET, NAME, SHORT, DEF)   NEXT = path_setting  (NAME, SHORT, TARGET, sizeof(TARGET), DEF);
 #define CONFIG_STRING(TARGET, NAME, SHORT, DEF) NEXT = string_setting(NAME, SHORT, TARGET, sizeof(TARGET), DEF);
 #define CONFIG_HEX(TARGET, NAME, SHORT)
-#define CONFIG_BIND(TARGET, PLAYER, NAME, SHORT)NEXT = bind_setting  (NAME, SHORT, &TARGET, PLAYER);
+#define CONFIG_BIND(TARGET, PLAYER, NAME, SHORT, DEF) \
+   NEXT = bind_setting  (NAME, SHORT, &TARGET, PLAYER, DEF);
 
 // TODO: Add black_frame_insertion, swap_interval msg_color video.rotation audio.block_frames audio.in_rate fast_forward_ratio
 //       rgui_show_start_screen
@@ -513,11 +517,11 @@ const rarch_setting_t* setting_data_get_list()
       END_SUB_GROUP()
 
       START_SUB_GROUP("Joypad Mapping")
-         CONFIG_INT(g_settings.input.joypad_map[0], "input_player1_joypad_index", "Player 1 Pad Index", DEFAULT_ME_YO)
-         CONFIG_INT(g_settings.input.joypad_map[1], "input_player2_joypad_index", "Player 2 Pad Index", DEFAULT_ME_YO)
-         CONFIG_INT(g_settings.input.joypad_map[2], "input_player3_joypad_index", "Player 3 Pad Index", DEFAULT_ME_YO)
-         CONFIG_INT(g_settings.input.joypad_map[3], "input_player4_joypad_index", "Player 4 Pad Index", DEFAULT_ME_YO)
-         CONFIG_INT(g_settings.input.joypad_map[4], "input_player5_joypad_index", "Player 5 Pad Index", DEFAULT_ME_YO)
+         CONFIG_INT(g_settings.input.joypad_map[0], "input_player1_joypad_index", "Player 1 Pad Index", 0)
+         CONFIG_INT(g_settings.input.joypad_map[1], "input_player2_joypad_index", "Player 2 Pad Index", 1)
+         CONFIG_INT(g_settings.input.joypad_map[2], "input_player3_joypad_index", "Player 3 Pad Index", 2)
+         CONFIG_INT(g_settings.input.joypad_map[3], "input_player4_joypad_index", "Player 4 Pad Index", 3)
+         CONFIG_INT(g_settings.input.joypad_map[4], "input_player5_joypad_index", "Player 5 Pad Index", 4)
       END_SUB_GROUP()
 
       START_SUB_GROUP("Turbo/Deadzone")
@@ -551,65 +555,21 @@ const rarch_setting_t* setting_data_get_list()
       #endif
 
       START_SUB_GROUP("Meta Keys")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_FAST_FORWARD_KEY],       0, "toggle_fast_forward",  "Fast forward toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_FAST_FORWARD_HOLD_KEY],  0, "hold_fast_forward",    "Fast forward hold")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_LOAD_STATE_KEY],         0, "load_state",           "Load state")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_SAVE_STATE_KEY],         0, "save_state",           "Save state")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_FULLSCREEN_TOGGLE_KEY],  0, "toggle_fullscreen",    "Fullscreen toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_QUIT_KEY],               0, "exit_emulator",        "Quit RetroArch")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_STATE_SLOT_PLUS],        0, "state_slot_increase",  "Savestate slot +")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_STATE_SLOT_MINUS],       0, "state_slot_decrease",  "Savestate slot -")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_REWIND],                 0, "rewind",               "Rewind")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_MOVIE_RECORD_TOGGLE],    0, "movie_record_toggle",  "Movie record toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_PAUSE_TOGGLE],           0, "pause_toggle",         "Pause toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_FRAMEADVANCE],           0, "frame_advance",        "Frameadvance")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_RESET],                  0, "reset",                "Reset game")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_SHADER_NEXT],            0, "shader_next",          "Next shader")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_SHADER_PREV],            0, "shader_prev",          "Previous shader")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_CHEAT_INDEX_PLUS],       0, "cheat_index_plus",     "Cheat index +")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_CHEAT_INDEX_MINUS],      0, "cheat_index_minus",    "Cheat index -")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_CHEAT_TOGGLE],           0, "cheat_toggle",         "Cheat toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_SCREENSHOT],             0, "screenshot",           "Take screenshot")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_DSP_CONFIG],             0, "dsp_config",           "DSP config")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_MUTE],                   0, "audio_mute",           "Audio mute toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_NETPLAY_FLIP],           0, "netplay_flip_players", "Netplay flip players")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_SLOWMOTION],             0, "slowmotion",           "Slow motion")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ENABLE_HOTKEY],          0, "enable_hotkey",        "Enable hotkeys")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_VOLUME_UP],              0, "volume_up",            "Volume +")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_VOLUME_DOWN],            0, "volume_down",          "Volume -")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_OVERLAY_NEXT],           0, "overlay_next",         "Overlay next")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_DISK_EJECT_TOGGLE],      0, "disk_eject_toggle",    "Disk eject toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_DISK_NEXT],              0, "disk_next",            "Disk next")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_GRAB_MOUSE_TOGGLE],      0, "grab_mouse_toggle",    "Grab mouse toggle")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_MENU_TOGGLE],            0, "menu_toggle",          "RGUI menu toggle")
+         for (int i = 0; i != RARCH_BIND_LIST_END; i ++)
+            if (input_config_bind_map[i].meta)
+            {
+               const struct input_bind_map* bind = &input_config_bind_map[i];
+               CONFIG_BIND(g_settings.input.binds[0][i], 0, bind->base, bind->desc, &retro_keybinds_1[i])
+            }
       END_SUB_GROUP()
 
       START_SUB_GROUP("Player 1")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_UP],    1, "up",                   "Up D-pad")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_DOWN],  1, "down",                 "Down D-pad")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_LEFT],  1, "left",                 "Left D-pad")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_RIGHT], 1, "right",                "Right D-pad")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_SELECT],1, "select",               "Select button")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_START], 1, "start",                "Start button")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_B],     1, "b",                    "B button (down)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_A],     1, "a",                    "A button (right)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_X],     1, "x",                    "X button (top)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_Y],     1, "y",                    "Y button (left)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_L],     1, "l",                    "L button (left shoulder)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_R],     1, "r",                    "R button (right shoulder)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_L2],    1, "l2",                   "L2 button (left shoulder #2)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_R2],    1, "r2",                   "R2 button (right shoulder #2)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_L3],    1, "l3",                   "L3 button (left analog button)")
-         CONFIG_BIND(g_settings.input.binds[0][RETRO_DEVICE_ID_JOYPAD_R3],    1, "r3",                   "R3 button (right analog button)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_LEFT_Y_MINUS],    1, "l_y_minus",            "Left analog Y- (up)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_LEFT_Y_PLUS],     1, "l_y_plus",             "Left analog Y+ (down)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_LEFT_X_MINUS],    1, "l_x_minus",            "Left analog X- (left)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_LEFT_X_PLUS],     1, "l_x_plus",             "Left analog X+ (right)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_RIGHT_Y_MINUS],   1, "r_y_minus",            "Right analog Y- (up)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_RIGHT_Y_PLUS],    1, "r_y_plus",             "Right analog Y+ (down)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_RIGHT_X_MINUS],   1, "r_x_minus",            "Right analog X- (left)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_ANALOG_RIGHT_X_PLUS],    1, "r_x_plus",             "Right analog X+ (right)")
-         CONFIG_BIND(g_settings.input.binds[0][RARCH_TURBO_ENABLE],           1, "turbo",                "Turbo enable")
+         for (int i = 0; i != RARCH_BIND_LIST_END; i ++)
+            if (!input_config_bind_map[i].meta)
+            {
+               const struct input_bind_map* bind = &input_config_bind_map[i];
+               CONFIG_BIND(g_settings.input.binds[0][i], 0, bind->base, bind->desc, &retro_keybinds_1[i])
+            }
       END_SUB_GROUP()
    END_GROUP()
 

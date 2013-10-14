@@ -42,6 +42,7 @@ typedef struct
       int integer;
       float fraction;
       const char* string;
+      const struct retro_keybind* keybind;
    } default_value;
    
    union
