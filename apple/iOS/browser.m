@@ -24,16 +24,6 @@
 
 static const void* const associated_module_key = &associated_module_key;
 
-@implementation RADirectoryItem
-+ (RADirectoryItem*)directoryItemFromElement:(struct string_list_elem*)element
-{
-   RADirectoryItem* item = [RADirectoryItem new];
-   item.path = @(element->data);
-   item.isDirectory = element->attr.b;
-   return item;
-}
-@end
-
 enum file_action { FA_DELETE = 10000, FA_CREATE, FA_MOVE };
 static void file_action(enum file_action action, NSString* source, NSString* target)
 {
@@ -53,6 +43,50 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
    if (!result && error)
       apple_display_alert(error.localizedDescription, @"Action failed");
 }
+
+@implementation RADirectoryItem
++ (RADirectoryItem*)directoryItemFromPath:(NSString*)path
+{
+   RADirectoryItem* item = [RADirectoryItem new];
+   item.path = path;
+   item.isDirectory = path_is_absolute(path.UTF8String);
+   return item;
+}
+
++ (RADirectoryItem*)directoryItemFromElement:(struct string_list_elem*)element
+{
+   RADirectoryItem* item = [RADirectoryItem new];
+   item.path = @(element->data);
+   item.isDirectory = element->attr.b;
+   return item;
+}
+
+- (UITableViewCell*)cellForTableView:(UITableView *)tableView
+{
+   static NSString* const cell_id = @"path_item";
+   static NSString* const icon_types[2] = { @"ic_file", @"ic_dir" };
+   
+   uint32_t type_id = self.isDirectory ? 1 : 0;
+   
+   UITableViewCell* result = [tableView dequeueReusableCellWithIdentifier:cell_id];
+   if (!result)
+      result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cell_id];
+
+   result.textLabel.text = [self.path lastPathComponent];
+   result.imageView.image = [UIImage imageNamed:icon_types[type_id]];
+   
+   return result;
+}
+
+- (void)wasSelectedOnTableView:(UITableView *)tableView ofController:(UIViewController *)controller
+{
+   if (self.isDirectory)
+      [(id)controller browseTo:self.path];
+   else
+      [[(id)controller directoryDelegate] directoryList:controller itemWasSelected:self];
+}
+
+@end
 
 @implementation RADirectoryList
 {
@@ -89,31 +123,9 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
    return self;
 }
 
-- (void)gotoParent
+- (void)browseTo:(NSString*)path
 {
-   _path = [_path stringByDeletingLastPathComponent];
-   [self refresh];
-}
-
-- (void)viewWillAppear:(BOOL)animated
-{
-   [super viewWillAppear:animated];
-   [self refresh];
-}
-
-- (NSArray*)sectionIndexTitlesForTableView:(UITableView*)tableView
-{
-   static NSArray* names = nil;
-
-   if (!names)
-      names = @[@"/", @"#", @"A", @"B", @"C", @"D", @"E", @"F", @"G", @"H", @"I", @"J", @"K", @"L",
-                @"M", @"N", @"O", @"P", @"Q", @"R", @"S", @"T", @"U", @"V", @"W", @"X", @"Y", @"Z"];
-
-   return names;
-}
-
-- (void)refresh
-{
+   _path = path;
    self.title = _path.lastPathComponent;
 
    // Need one array per section
@@ -147,38 +159,27 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
    [self.tableView reloadData];
 }
 
-- (void)tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath
+- (void)gotoParent
 {
-   RADirectoryItem* item = [self itemForIndexPath:indexPath];
-   
-   if (item.isDirectory)
-   {
-      _path = item.path;
-      [self refresh];
-   }
-   else
-      [self.directoryDelegate directoryList:self itemWasSelected:[self itemForIndexPath:indexPath]];
+   [self browseTo:[_path stringByDeletingLastPathComponent]];
 }
 
-- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+- (void)viewWillAppear:(BOOL)animated
 {
-   RADirectoryItem* path = [self itemForIndexPath:indexPath];
-   uint32_t type_id = path.isDirectory ? 1 : 0;
-
-   UITableViewCell* cell = nil;
-   
-   static NSString* const cell_types[2] = { @"file", @"folder" };
-   if ([self getCellFor:cell_types[type_id] withStyle:UITableViewCellStyleDefault result:&cell])
-   {
-      static NSString* const icon_types[2] = { @"ic_file", @"ic_dir" };
-      cell.imageView.image = [UIImage imageNamed:icon_types[type_id]];
-   }
-
-   cell.textLabel.text = [path.path lastPathComponent];
-    
-   return cell;
+   [super viewWillAppear:animated];
+   [self browseTo:_path];
 }
 
+- (NSArray*)sectionIndexTitlesForTableView:(UITableView*)tableView
+{
+   static NSArray* names = nil;
+
+   if (!names)
+      names = @[@"/", @"#", @"A", @"B", @"C", @"D", @"E", @"F", @"G", @"H", @"I", @"J", @"K", @"L",
+                @"M", @"N", @"O", @"P", @"Q", @"R", @"S", @"T", @"U", @"V", @"W", @"X", @"Y", @"Z"];
+
+   return names;
+}
 
 // File management
 // Called as a selector from a toolbar button
@@ -257,28 +258,35 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
          file_action(alertView.tag, self.selectedItem.path, [_path stringByAppendingPathComponent:text]);
    }
 
-   [self refresh];
+   [self browseTo:_path];
 }
-
 
 @end
+
+@interface RAFoldersList()
+@property (nonatomic) NSString* path;
+@end
+
 @implementation RAFoldersList
-{
-   NSString* _path;
-}
 
 - (id)initWithFilePath:(NSString*)path
 {
-   self = [super initWithStyle:UITableViewStyleGrouped];
-   
-   if (self)
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
+      RAFoldersList* __weak weakSelf = self;
       _path = path;
+
+      // Parent item
+      NSString* sourceItem = _path.stringByDeletingLastPathComponent;
+      
+      RAMenuItemBasic* parentItem = [RAMenuItemBasic itemWithDescription:@"<Parent>" association:sourceItem.stringByDeletingLastPathComponent
+         action:^(id userdata){ [weakSelf moveInto:userdata]; } detail:NULL];
+      [self.sections addObject:@[@"", parentItem]];
+
 
       // List contents
       struct string_list* contents = dir_list_new([_path stringByDeletingLastPathComponent].UTF8String, 0, true);
       NSMutableArray* items = [NSMutableArray arrayWithObject:@""];
-      NSString* sourceDirectory = _path.stringByDeletingLastPathComponent;
    
       if (contents)
       {
@@ -289,7 +297,10 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
             if (contents->elems[i].attr.b)
             {
                const char* basename = path_basename(contents->elems[i].data);
-               [items addObject:[sourceDirectory stringByAppendingPathComponent:@(basename)]];
+               
+               RAMenuItemBasic* item = [RAMenuItemBasic itemWithDescription:@(basename) association:@(contents->elems[i].data)
+                  action:^(id userdata){ [weakSelf moveInto:userdata]; } detail:NULL];
+               [items addObject:item];
             }
          }
    
@@ -297,29 +308,17 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
       }
 
       [self setTitle:[@"Move " stringByAppendingString:_path.lastPathComponent]];
-      [self.sections addObject:@[@"", [sourceDirectory stringByDeletingLastPathComponent]]];
+      
       [self.sections addObject:items];
    }
 
    return self;
 }
 
-- (UITableViewCell*)tableView:(UITableView*)tableView cellForRowAtIndexPath:(NSIndexPath*)indexPath
+- (void)moveInto:(NSString*)path
 {
-   static NSString* const cell_id = @"Directory";
-   
-   UITableViewCell* cell = nil;
-   [self getCellFor:cell_id withStyle:UITableViewCellStyleDefault result:&cell];
-
-   cell.textLabel.text = [[self itemForIndexPath:indexPath] lastPathComponent];
-
-   return cell;
-}
-
-- (void)tableView:(UITableView*)tableView didSelectRowAtIndexPath:(NSIndexPath*)indexPath
-{
-   NSString* targetPath = [[self itemForIndexPath:indexPath] stringByAppendingPathComponent:_path.lastPathComponent];
-   file_action(FA_MOVE, _path, targetPath);
+   NSString* targetPath = [path stringByAppendingPathComponent:self.path.lastPathComponent];
+   file_action(FA_MOVE, self.path, targetPath);
    [self.navigationController popViewControllerAnimated:YES];
 }
 

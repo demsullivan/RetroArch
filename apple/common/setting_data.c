@@ -23,7 +23,7 @@ static const char* get_input_config_prefix(const rarch_setting_t* setting)
    if (setting->index)
       snprintf(buffer, 32, "input_player%d", setting->index);
    else
-      snprintf(buffer, 32, "input", setting->index);
+      snprintf(buffer, 32, "input");
    return buffer;
 }
 

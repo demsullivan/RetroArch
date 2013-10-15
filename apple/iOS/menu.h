@@ -30,7 +30,13 @@
 /* A menu class that displays RAMenuItemBase */
 /* objects.                                  */
 /*********************************************/
-@interface RAMenuBase : RATableViewController @end
+@interface RAMenuBase : UITableViewController
+@property (nonatomic) NSMutableArray* sections;
+@property (nonatomic) BOOL hidesHeaders;
+
+- (id)initWithStyle:(UITableViewStyle)style;
+- (id)itemForIndexPath:(NSIndexPath*)indexPath;
+@end
 
 /*********************************************/
 /* RAMenuItemBasic                           */
@@ -43,6 +49,8 @@
 @property (nonatomic) id userdata;
 @property (copy) void (^action)(id userdata);
 @property (copy) NSString* (^detail)(id userdata);
+
++ (RAMenuItemBasic*)itemWithDescription:(NSString*)description association:(id)userdata action:(void (^)())action detail:(NSString* (^)())detail;
 @end
 
 /*********************************************/

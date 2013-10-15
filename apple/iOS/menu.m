@@ -27,7 +27,29 @@
 
 - (id)initWithStyle:(UITableViewStyle)style
 {
-   return [super initWithStyle:style];
+   if ((self = [super initWithStyle:style]))
+      self.sections = [NSMutableArray array];
+   return self;
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView*)tableView
+{
+   return self.sections.count;
+}
+
+- (NSString*)tableView:(UITableView*)tableView titleForHeaderInSection:(NSInteger)section
+{
+   return self.hidesHeaders ? nil : self.sections[section][0];
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
+{
+   return [self.sections[section] count] - 1;
+}
+
+- (id)itemForIndexPath:(NSIndexPath*)indexPath
+{
+   return self.sections[indexPath.section][indexPath.row + 1];
 }
 
 - (UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
