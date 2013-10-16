@@ -100,6 +100,7 @@
    if (!result)
       result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
    
+   result.selectionStyle = UITableViewCellSelectionStyleNone;
    result.textLabel.text = self.description;
    result.detailTextLabel.text = self.detail ? self.detail(self.userdata) : nil;
    return result;
@@ -653,28 +654,61 @@ static const void* const associated_core_key = &associated_core_key;
 /* Menu object that allows editing of        */
 /* options specific to the running core.     */
 /*********************************************/
+@interface RACoreOptionsMenu() <UIActionSheetDelegate>
+@property (nonatomic) uint32_t currentIndex;
+@end
+
 @implementation RACoreOptionsMenu
 
 - (id)init
 {
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
+      RACoreOptionsMenu* __weak weakSelf = self;
       core_option_manager_t* options = g_extern.system.core_options;
+   
+      NSMutableArray* section = [NSMutableArray arrayWithObject:@""];
+      [self.sections addObject:section];
    
       if (options)
       {
-         NSMutableArray* section = [NSMutableArray arrayWithObject:@""];
-      
          for (int i = 0; i != core_option_size(options); i ++)
-         {
-            [section addObject:[RAMenuItemBasic itemWithDescription:@(core_option_get_desc(options, i)) action:nil]];
-         }
-         
-         [self.sections addObject:section];
+            [section addObject:[RAMenuItemBasic itemWithDescription:@(core_option_get_desc(options, i)) association:nil
+               action:^{ [weakSelf editValue:i]; }
+               detail:^{ return @(core_option_get_val(options, i)); }]];
       }
+      else
+         [section addObject:[RAMenuItemBasic itemWithDescription:@"The running core has no options." action:NULL]];
    }
    
    return self;
+}
+
+- (void)editValue:(uint32_t)index
+{
+   self.currentIndex = index;
+
+   UIActionSheet* sheet = [UIActionSheet new];
+   sheet.title = @(core_option_get_desc(g_extern.system.core_options, index));
+   sheet.delegate = self;
+  
+   struct string_list* values = core_option_get_vals(g_extern.system.core_options, index);
+   
+   for (int i = 0; i != values->size; i ++)
+      [sheet addButtonWithTitle:@(values->elems[i].data)];
+   
+   [sheet addButtonWithTitle:@"Cancel"];
+   sheet.cancelButtonIndex = sheet.numberOfButtons - 1;
+   
+   [sheet showInView:self.tableView];
+}
+
+- (void)actionSheet:(UIActionSheet*)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+   if (buttonIndex != actionSheet.cancelButtonIndex)
+      core_option_set_val(g_extern.system.core_options, self.currentIndex, buttonIndex);
+   
+   [self.tableView reloadData];
 }
 
 @end
