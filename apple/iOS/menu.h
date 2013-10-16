@@ -54,22 +54,22 @@
 @end
 
 /*********************************************/
-/* RAMenuItemBoolean                         */
+/* RAMenuItemBooleanSetting                  */
 /* A simple menu item that displays the      */
 /* state, and allows editing, of a boolean   */
 /* setting.                                  */
 /*********************************************/
-@interface RAMenuItemBoolean : NSObject<RAMenuItemBase>
+@interface RAMenuItemBooleanSetting : NSObject<RAMenuItemBase>
 @property (nonatomic) const rarch_setting_t* setting;
 @end
 
 /*********************************************/
-/* RAMenuItemString                          */
+/* RAMenuItemGeneralSetting                  */
 /* A simple menu item that displays the      */
 /* state, and allows editing, of a string or */
 /* numeric setting.                          */
 /*********************************************/
-@interface RAMenuItemString : NSObject<RAMenuItemBase, UIAlertViewDelegate>
+@interface RAMenuItemGeneralSetting : NSObject<RAMenuItemBase>
 @property (nonatomic) const rarch_setting_t* setting;
 @property (nonatomic, weak) UITableView* parentTable;
 @end
@@ -79,14 +79,14 @@
 /* A menu item that displays and allows      */
 /* browsing for a path setting.              */
 /*********************************************/
-@interface RAMenuItemPathSetting : RAMenuItemString<RAMenuItemBase, RADirectoryListDelegate> @end
+@interface RAMenuItemPathSetting : RAMenuItemGeneralSetting<RAMenuItemBase> @end
 
 /*********************************************/
 /* RAMenuItemBindSetting                     */
 /* A menu item that displays and allows      */
 /* mapping of a keybinding.                  */
 /*********************************************/
-@interface RAMenuItemBindSetting : RAMenuItemString<RAMenuItemBase, UIAlertViewDelegate> @end
+@interface RAMenuItemBindSetting : RAMenuItemGeneralSetting<RAMenuItemBase> @end
 
 /*********************************************/
 /* RAMainMenu                                */
@@ -113,7 +113,7 @@
 /* editing of cocoa frontend related         */
 /* settings.                                 */
 /*********************************************/
-@interface RAFrontendSettingsMenu : RAMenuBase<UIAlertViewDelegate> @end
+@interface RAFrontendSettingsMenu : RAMenuBase @end
 
 /*********************************************/
 /* RACoreSettingsMenu                        */

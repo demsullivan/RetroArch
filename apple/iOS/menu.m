@@ -115,16 +115,16 @@
 @end
 
 /*********************************************/
-/* RAMenuItemBoolean                         */
+/* RAMenuItemBooleanSetting                  */
 /* A simple menu item that displays the      */
 /* state, and allows editing, of a boolean   */
 /* setting.                                  */
 /*********************************************/
-@implementation RAMenuItemBoolean
+@implementation RAMenuItemBooleanSetting
 
-+ (RAMenuItemBoolean*)itemForSetting:(const char*)setting_name
++ (RAMenuItemBooleanSetting*)itemForSetting:(const char*)setting_name
 {
-   RAMenuItemBoolean* item = [RAMenuItemBoolean new];
+   RAMenuItemBooleanSetting* item = [RAMenuItemBooleanSetting new];
    item.setting = setting_data_find_setting(setting_name);
    return item;
 }
@@ -163,20 +163,20 @@
 @end
 
 /*********************************************/
-/* RAMenuItemString                          */
+/* RAMenuItemGeneralSetting                  */
 /* A simple menu item that displays the      */
 /* state, and allows editing, of a string or */
 /* numeric setting.                          */
 /*********************************************/
-@interface RAMenuItemString()
+@interface RAMenuItemGeneralSetting() <UIAlertViewDelegate>
 @property (nonatomic) RANumberFormatter* formatter;
 @end
 
-@implementation RAMenuItemString
+@implementation RAMenuItemGeneralSetting
 
-+ (RAMenuItemString*)itemForSetting:(const char*)setting_name
++ (RAMenuItemGeneralSetting*)itemForSetting:(const char*)setting_name
 {
-   RAMenuItemString* item = [RAMenuItemString new];
+   RAMenuItemGeneralSetting* item = [RAMenuItemGeneralSetting new];
    item.setting = setting_data_find_setting(setting_name);
    
    if (item.setting->type == ST_INT || item.setting->type == ST_UINT || item.setting->type == ST_FLOAT)
@@ -242,6 +242,7 @@
 /* A menu item that displays and allows      */
 /* browsing for a path setting.              */
 /*********************************************/
+@interface RAMenuItemPathSetting() <RADirectoryListDelegate> @end
 @implementation RAMenuItemPathSetting
 
 + (RAMenuItemPathSetting*)itemForSetting:(const char*)setting_name
@@ -274,7 +275,7 @@
 /* A menu item that displays and allows      */
 /* mapping of a keybinding.                  */
 /*********************************************/
-@interface RAMenuItemBindSetting()
+@interface RAMenuItemBindSetting() <UIAlertViewDelegate>
 @property (nonatomic) NSTimer* bindTimer;
 @property (nonatomic) UIAlertView* alert;
 @end
@@ -477,6 +478,7 @@
 /*********************************************/
 static const void* const associated_core_key = &associated_core_key;
 
+@interface RAFrontendSettingsMenu() <UIAlertViewDelegate> @end
 @implementation RAFrontendSettingsMenu
 
 - (id)init
@@ -627,9 +629,9 @@ static const void* const associated_core_key = &associated_core_key;
                [self.sections addObject:settings];
          }
          else if (i->type == ST_BOOL)
-            [settings addObject:[RAMenuItemBoolean itemForSetting:i->name]];
+            [settings addObject:[RAMenuItemBooleanSetting itemForSetting:i->name]];
          else if (i->type == ST_INT || i->type == ST_UINT || i->type == ST_FLOAT || i->type == ST_STRING)
-            [settings addObject:[RAMenuItemString itemForSetting:i->name]];
+            [settings addObject:[RAMenuItemGeneralSetting itemForSetting:i->name]];
          else if (i->type == ST_PATH)
             [settings addObject:[RAMenuItemPathSetting itemForSetting:i->name]];
          else if (i->type == ST_BIND)
