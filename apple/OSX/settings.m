@@ -59,11 +59,9 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    if (!_setting)
       return;
    
-   if (aSetting->type == ST_INT || aSetting->type == ST_FLOAT)
+   if (aSetting->type == ST_INT || aSetting->type == ST_UINT || aSetting->type == ST_FLOAT)
    {
-      self.textField.formatter = [[RANumberFormatter alloc] initWithFloatSupport:aSetting->type == ST_FLOAT
-                                                                         minimum:aSetting->min
-                                                                         maximum:aSetting->max];
+      self.textField.formatter = [[RANumberFormatter alloc] initWithSetting:aSetting];
    }
    else
       self.textField.formatter = nil;
@@ -72,6 +70,7 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    switch (aSetting->type)
    {
       case ST_INT:    self.numericValue = @(*aSetting->value.integer); break;
+      case ST_UINT:   self.numericValue = @(*aSetting->value.unsigned_integer); break;
       case ST_FLOAT:  self.numericValue = @(*aSetting->value.fraction); break;
       case ST_STRING: self.stringValue =  @( aSetting->value.string); break;
       case ST_PATH:   self.stringValue =  @( aSetting->value.string); break;
@@ -96,6 +95,8 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
    
    if (_setting && _setting->type == ST_INT)
       *_setting->value.integer = _numericValue.intValue;
+   else if (_setting && _setting->type == ST_UINT)
+      *_setting->value.unsigned_integer = _numericValue.intValue;
    else if (_setting && _setting->type == ST_FLOAT)
       *_setting->value.fraction = _numericValue.floatValue;
 }
@@ -309,6 +310,7 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
          {
             case ST_BOOL:   s = [outlineView makeViewWithIdentifier:@"RABooleanSetting" owner:nil]; break;
             case ST_INT:    s = [outlineView makeViewWithIdentifier:@"RANumericSetting" owner:nil]; break;
+            case ST_UINT:   s = [outlineView makeViewWithIdentifier:@"RANumericSetting" owner:nil]; break;
             case ST_FLOAT:  s = [outlineView makeViewWithIdentifier:@"RANumericSetting" owner:nil]; break;
             case ST_PATH:   s = [outlineView makeViewWithIdentifier:@"RAPathSetting"    owner:nil]; break;
             case ST_STRING: s = [outlineView makeViewWithIdentifier:@"RAStringSetting"  owner:nil]; break;

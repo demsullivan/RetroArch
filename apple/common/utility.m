@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 
 #include "RetroArch_Apple.h"
+#include "setting_data.h"
 
 #include "general.h"
 #include "file.h"
@@ -86,16 +87,35 @@ NSString* apple_get_core_display_name(NSString* core_id)
 
 // Number formatter class for setting strings
 @implementation RANumberFormatter
-- (id)initWithFloatSupport:(bool)allowFloat minimum:(double)min maximum:(double)max
+- (id)initWithSetting:(const rarch_setting_t*)setting
 {
-   self = [super init];
-   self.allowsFloats = allowFloat;
-   self.maximumFractionDigits = 10;
-   
-   if (min || max)
+   if ((self = [super init]))
    {
-      self.minimum = @(min);
-      self.maximum = @(max);
+      self.allowsFloats = (setting->type == ST_FLOAT);
+      
+      if (setting->min != setting->max)
+      {
+         self.minimum = @(setting->min);
+         self.maximum = @(setting->max);
+      }
+      else
+      {
+         if (setting->type == ST_INT)
+         {
+            self.minimum = @(INT_MIN);
+            self.maximum = @(INT_MAX);
+         }
+         else if (setting->type == ST_UINT)
+         {
+            self.minimum = @(0);
+            self.maximum = @(UINT_MAX);
+         }
+         else if (setting->type == ST_FLOAT)
+         {
+            self.minimum = @(FLT_MIN);
+            self.maximum = @(FLT_MAX);
+         }
+      }
    }
    
    return self;

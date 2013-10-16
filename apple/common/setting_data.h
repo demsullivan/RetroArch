@@ -18,7 +18,7 @@
 
 #include "general.h"
 
-enum setting_type { ST_NONE, ST_BOOL, ST_INT, ST_FLOAT, ST_PATH, ST_STRING, ST_HEX, ST_BIND,
+enum setting_type { ST_NONE, ST_BOOL, ST_INT, ST_UINT, ST_FLOAT, ST_PATH, ST_STRING, ST_HEX, ST_BIND,
                     ST_GROUP, ST_SUB_GROUP, ST_END_GROUP, ST_END_SUB_GROUP };
 
 typedef struct
@@ -40,6 +40,7 @@ typedef struct
    {
       bool boolean;
       int integer;
+      unsigned int unsigned_integer;
       float fraction;
       const char* string;
       const struct retro_keybind* keybind;
@@ -49,6 +50,7 @@ typedef struct
    {
       bool* boolean;
       int* integer;
+      unsigned int* unsigned_integer;
       float* fraction;
       char* string;
       struct retro_keybind* keybind;

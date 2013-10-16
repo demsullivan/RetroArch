@@ -22,6 +22,7 @@
 
 #include "core_info.h"
 #include "core_info_ext.h"
+#include "setting_data.h"
 
 #define GSEVENT_TYPE_KEYDOWN 10
 #define GSEVENT_TYPE_KEYUP 11
@@ -75,7 +76,7 @@ extern NSString* apple_get_core_display_name(NSString* core_id);
 <UITextFieldDelegate>
 #endif
 
-- (id)initWithFloatSupport:(bool)allowFloat minimum:(double)min maximum:(double)max;
+- (id)initWithSetting:(const rarch_setting_t*)setting;
 @end
 
 // frontend/platform/platform_apple.c

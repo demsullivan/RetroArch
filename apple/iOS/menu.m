@@ -179,9 +179,8 @@
    RAMenuItemString* item = [RAMenuItemString new];
    item.setting = setting_data_find_setting(setting_name);
    
-   if (item.setting->type == ST_INT || item.setting->type == ST_FLOAT)
-      item.formatter = [[RANumberFormatter alloc] initWithFloatSupport:item.setting->type == ST_FLOAT
-                                                  minimum:item.setting->min maximum:item.setting->max];
+   if (item.setting->type == ST_INT || item.setting->type == ST_UINT || item.setting->type == ST_FLOAT)
+      item.formatter = [[RANumberFormatter alloc] initWithSetting:item.setting];
    
    return item;
 }
@@ -629,7 +628,7 @@ static const void* const associated_core_key = &associated_core_key;
          }
          else if (i->type == ST_BOOL)
             [settings addObject:[RAMenuItemBoolean itemForSetting:i->name]];
-         else if (i->type == ST_INT || i->type == ST_FLOAT || i->type == ST_STRING)
+         else if (i->type == ST_INT || i->type == ST_UINT || i->type == ST_FLOAT || i->type == ST_STRING)
             [settings addObject:[RAMenuItemString itemForSetting:i->name]];
          else if (i->type == ST_PATH)
             [settings addObject:[RAMenuItemPathSetting itemForSetting:i->name]];

@@ -107,10 +107,11 @@ void setting_data_reset()
    {
       switch (i->type)
       {
-         case ST_BOOL:   *i->value.boolean  = i->default_value.boolean;  break;
-         case ST_INT:    *i->value.integer  = i->default_value.integer;  break;
-         case ST_FLOAT:  *i->value.fraction = i->default_value.fraction; break;
-         case ST_BIND:   *i->value.keybind  = *i->default_value.keybind; break;
+         case ST_BOOL:   *i->value.boolean          = i->default_value.boolean;          break;
+         case ST_INT:    *i->value.integer          = i->default_value.integer;          break;
+         case ST_UINT:   *i->value.unsigned_integer = i->default_value.unsigned_integer; break;
+         case ST_FLOAT:  *i->value.fraction         = i->default_value.fraction;         break;
+         case ST_BIND:   *i->value.keybind          = *i->default_value.keybind;         break;
          default: break;
       }
    }
@@ -142,6 +143,7 @@ bool setting_data_load_config(config_file_t* config)
       {
          case ST_BOOL:   config_get_bool  (config, setting_data[i].name, setting_data[i].value.boolean); break;
          case ST_INT:    config_get_int   (config, setting_data[i].name, setting_data[i].value.integer); break;
+         case ST_UINT:   config_get_uint  (config, setting_data[i].name, setting_data[i].value.unsigned_integer); break;
          case ST_FLOAT:  config_get_float (config, setting_data[i].name, setting_data[i].value.fraction); break;
          case ST_PATH:   config_get_array (config, setting_data[i].name, setting_data[i].value.string, setting_data[i].size); break;
          case ST_STRING: config_get_array (config, setting_data[i].name, setting_data[i].value.string, setting_data[i].size); break;
@@ -191,6 +193,7 @@ bool setting_data_save_config(config_file_t* config)
       {
          case ST_BOOL:   config_set_bool  (config, setting_data[i].name, *setting_data[i].value.boolean); break;
          case ST_INT:    config_set_int   (config, setting_data[i].name, *setting_data[i].value.integer); break;
+         case ST_UINT:   config_set_uint64(config, setting_data[i].name, *setting_data[i].value.unsigned_integer); break;
          case ST_FLOAT:  config_set_float (config, setting_data[i].name, *setting_data[i].value.fraction); break;
          case ST_PATH:   config_set_string(config, setting_data[i].name,  setting_data[i].value.string); break;
          case ST_STRING: config_set_string(config, setting_data[i].name,  setting_data[i].value.string); break;
@@ -233,6 +236,7 @@ void setting_data_set_with_string_representation(const rarch_setting_t* setting,
    switch (setting->type)
    {
       case ST_INT:    sscanf(value, "%d", setting->value.integer); break;
+      case ST_UINT:   sscanf(value, "%u", setting->value.unsigned_integer); break;
       case ST_FLOAT:  sscanf(value, "%f", setting->value.fraction); break;
       case ST_PATH:   strlcpy(setting->value.string, value, setting->size); break;
       case ST_STRING: strlcpy(setting->value.string, value, setting->size); break;
@@ -250,6 +254,7 @@ const char* setting_data_get_string_representation(const rarch_setting_t* settin
    {
       case ST_BOOL:   snprintf(buffer, length, "%s", *setting->value.boolean ? "True" : "False"); break;
       case ST_INT:    snprintf(buffer, length, "%d", *setting->value.integer); break;
+      case ST_UINT:   snprintf(buffer, length, "%u", *setting->value.unsigned_integer); break;
       case ST_FLOAT:  snprintf(buffer, length, "%f", *setting->value.fraction); break;
       case ST_PATH:   strlcpy(buffer, setting->value.string, length); break;
       case ST_STRING: strlcpy(buffer, setting->value.string, length); break;
@@ -285,6 +290,14 @@ static rarch_setting_t int_setting(const char* name, const char* description, in
    rarch_setting_t result = { ST_INT, name, sizeof(bool), description };
    result.value.integer = target;
    result.default_value.integer = default_value;
+   return result;
+}
+
+static rarch_setting_t uint_setting(const char* name, const char* description, unsigned int* target, unsigned int default_value)
+{
+   rarch_setting_t result = { ST_UINT, name, sizeof(bool), description };
+   result.value.unsigned_integer = target;
+   result.default_value.unsigned_integer = default_value;
    return result;
 }
 
@@ -330,6 +343,7 @@ static rarch_setting_t bind_setting(const char* name, const char* description, s
 #define END_SUB_GROUP()                         NEXT = group_setting (ST_END_SUB_GROUP, 0);
 #define CONFIG_BOOL(TARGET, NAME, SHORT, DEF)   NEXT = bool_setting  (NAME, SHORT, &TARGET, DEF);
 #define CONFIG_INT(TARGET, NAME, SHORT, DEF)    NEXT = int_setting   (NAME, SHORT, &TARGET, DEF);
+#define CONFIG_UINT(TARGET, NAME, SHORT, DEF)   NEXT = uint_setting  (NAME, SHORT, &TARGET, DEF);
 #define CONFIG_FLOAT(TARGET, NAME, SHORT, DEF)  NEXT = float_setting (NAME, SHORT, &TARGET, DEF);
 #define CONFIG_PATH(TARGET, NAME, SHORT, DEF)   NEXT = path_setting  (NAME, SHORT, TARGET, sizeof(TARGET), DEF);
 #define CONFIG_STRING(TARGET, NAME, SHORT, DEF) NEXT = string_setting(NAME, SHORT, TARGET, sizeof(TARGET), DEF);
@@ -374,7 +388,7 @@ const rarch_setting_t* setting_data_get_list()
          CONFIG_PATH(g_settings.cheat_database, "cheat_database_path", "Cheat Database", DEFAULT_ME_YO)
          CONFIG_PATH(g_settings.cheat_settings_path, "cheat_settings_path", "Cheat Settings", DEFAULT_ME_YO)
          CONFIG_PATH(g_settings.game_history_path, "game_history_path", "Game History Path", DEFAULT_ME_YO)
-         CONFIG_INT(g_settings.game_history_size, "game_history_size", "Game History Size", game_history_size)
+         CONFIG_UINT(g_settings.game_history_size, "game_history_size", "Game History Size", game_history_size)
 
          #ifdef HAVE_RGUI
             CONFIG_PATH(g_settings.rgui_browser_directory, "rgui_browser_directory", "Browser Directory", DEFAULT_ME_YO)
@@ -394,12 +408,12 @@ const rarch_setting_t* setting_data_get_list()
       START_SUB_GROUP("Emulation")
          CONFIG_BOOL(g_settings.pause_nonactive, "pause_nonactive", "Pause when inactive", pause_nonactive)
          CONFIG_BOOL(g_settings.rewind_enable, "rewind_enable", "Enable Rewind", rewind_enable)
-         CONFIG_INT(g_settings.rewind_buffer_size, "rewind_buffer_size", "Rewind Buffer Size", rewind_buffer_size) /* *= 1000000 */
-         CONFIG_INT(g_settings.rewind_granularity, "rewind_granularity", "Rewind Granularity", rewind_granularity)
+//         CONFIG_INT(g_settings.rewind_buffer_size, "rewind_buffer_size", "Rewind Buffer Size", rewind_buffer_size) /* *= 1000000 */
+         CONFIG_UINT(g_settings.rewind_granularity, "rewind_granularity", "Rewind Granularity", rewind_granularity)
          CONFIG_FLOAT(g_settings.slowmotion_ratio, "slowmotion_ratio", "Slow motion ratio", slowmotion_ratio) /* >= 1.0f */
 
          /* Saves */
-         CONFIG_INT(g_settings.autosave_interval, "autosave_interval", "Autosave Interval", autosave_interval)
+         CONFIG_UINT(g_settings.autosave_interval, "autosave_interval", "Autosave Interval", autosave_interval)
          CONFIG_BOOL(g_settings.block_sram_overwrite, "block_sram_overwrite", "Block SRAM overwrite", block_sram_overwrite)
          CONFIG_BOOL(g_settings.savestate_auto_index, "savestate_auto_index", "Save State Auto Index", savestate_auto_index)
          CONFIG_BOOL(g_settings.savestate_auto_save, "savestate_auto_save", "Auto Save State", savestate_auto_save)
@@ -412,11 +426,11 @@ const rarch_setting_t* setting_data_get_list()
    /*********/
    START_GROUP("Video")
       START_SUB_GROUP("Monitor")
-         CONFIG_INT(g_settings.video.monitor_index, "video_monitor_index", "Monitor Index", monitor_index)
+         CONFIG_UINT(g_settings.video.monitor_index, "video_monitor_index", "Monitor Index", monitor_index)
          CONFIG_BOOL(g_settings.video.fullscreen, "video_fullscreen", "Use Fullscreen mode", g_extern.force_fullscreen ? true : fullscreen) // if (!g_extern.force_fullscreen)
          CONFIG_BOOL(g_settings.video.windowed_fullscreen, "video_windowed_fullscreen", "Windowed Fullscreen Mode", windowed_fullscreen)
-         CONFIG_INT(g_settings.video.fullscreen_x, "video_fullscreen_x", "Fullscreen Width", fullscreen_x)
-         CONFIG_INT(g_settings.video.fullscreen_y, "video_fullscreen_y", "Fullscreen Height", fullscreen_y)
+         CONFIG_UINT(g_settings.video.fullscreen_x, "video_fullscreen_x", "Fullscreen Width", fullscreen_x)
+         CONFIG_UINT(g_settings.video.fullscreen_y, "video_fullscreen_y", "Fullscreen Height", fullscreen_y)
          CONFIG_FLOAT(g_settings.video.refresh_rate, "video_refresh_rate", "Refresh Rate", refresh_rate)
       END_SUB_GROUP()
 
@@ -431,7 +445,7 @@ const rarch_setting_t* setting_data_get_list()
          CONFIG_BOOL(g_settings.video.force_aspect, "video_force_aspect", "Force aspect ratio", force_aspect)
          CONFIG_FLOAT(g_settings.video.aspect_ratio, "video_aspect_ratio", "Aspect Ratio", aspect_ratio)
          CONFIG_BOOL(g_settings.video.aspect_ratio_auto, "video_aspect_ratio_auto", "Use Auto Aspect Ratio", aspect_ratio_auto)
-         CONFIG_INT(g_settings.video.aspect_ratio_idx, "aspect_ratio_index", "Aspect Ratio Index", aspect_ratio_idx)
+         CONFIG_UINT(g_settings.video.aspect_ratio_idx, "aspect_ratio_index", "Aspect Ratio Index", aspect_ratio_idx)
       END_SUB_GROUP()
 
       START_SUB_GROUP("Scaling")
@@ -441,8 +455,8 @@ const rarch_setting_t* setting_data_get_list()
 
          CONFIG_INT(g_extern.console.screen.viewports.custom_vp.x, "custom_viewport_x", "Custom Viewport X", 0)
          CONFIG_INT(g_extern.console.screen.viewports.custom_vp.y, "custom_viewport_y", "Custom Viewport Y", 0)
-         CONFIG_INT(g_extern.console.screen.viewports.custom_vp.width, "custom_viewport_width", "Custom Viewport Width", 0)
-         CONFIG_INT(g_extern.console.screen.viewports.custom_vp.height, "custom_viewport_height", "Custom Viewport Height", 0)
+         CONFIG_UINT(g_extern.console.screen.viewports.custom_vp.width, "custom_viewport_width", "Custom Viewport Width", 0)
+         CONFIG_UINT(g_extern.console.screen.viewports.custom_vp.height, "custom_viewport_height", "Custom Viewport Height", 0)
 
          CONFIG_BOOL(g_settings.video.smooth, "video_smooth", "Use bilinear filtering", video_smooth)
       END_SUB_GROUP()
@@ -457,7 +471,7 @@ const rarch_setting_t* setting_data_get_list()
          CONFIG_BOOL(g_settings.video.threaded, "video_threaded", "Use threaded video", video_threaded)
          CONFIG_BOOL(g_settings.video.vsync, "video_vsync", "Use VSync", vsync)
          CONFIG_BOOL(g_settings.video.hard_sync, "video_hard_sync", "Use OpenGL Hard Sync", hard_sync)
-         CONFIG_INT(g_settings.video.hard_sync_frames, "video_hard_sync_frames", "Number of Hard Sync frames", hard_sync_frames) // 0 - 3
+         CONFIG_UINT(g_settings.video.hard_sync_frames, "video_hard_sync_frames", "Number of Hard Sync frames", hard_sync_frames) // 0 - 3
       END_SUB_GROUP()
 
       START_SUB_GROUP("Misc")
@@ -494,14 +508,14 @@ const rarch_setting_t* setting_data_get_list()
 
       START_SUB_GROUP("Sync")
          CONFIG_BOOL(g_settings.audio.sync, "audio_sync", "Enable Sync", audio_sync)
-         CONFIG_INT(g_settings.audio.latency, "audio_latency", "Latency", out_latency)
+         CONFIG_UINT(g_settings.audio.latency, "audio_latency", "Latency", out_latency)
          CONFIG_BOOL(g_settings.audio.rate_control, "audio_rate_control", "Enable Rate Control", rate_control)
          CONFIG_FLOAT(g_settings.audio.rate_control_delta, "audio_rate_control_delta", "Rate Control Delta", rate_control_delta)
       END_SUB_GROUP()
 
       START_SUB_GROUP("Misc")
          CONFIG_STRING(g_settings.audio.device, "audio_device", "Device", DEFAULT_ME_YO)
-         CONFIG_INT(g_settings.audio.out_rate, "audio_out_rate", "Ouput Rate", out_rate)
+         CONFIG_UINT(g_settings.audio.out_rate, "audio_out_rate", "Ouput Rate", out_rate)
          CONFIG_PATH(g_settings.audio.dsp_plugin, "audio_dsp_plugin", "DSP Plugin", DEFAULT_ME_YO)
       END_SUB_GROUP()
    END_GROUP()
@@ -526,8 +540,8 @@ const rarch_setting_t* setting_data_get_list()
 
       START_SUB_GROUP("Turbo/Deadzone")
          CONFIG_FLOAT(g_settings.input.axis_threshold, "input_axis_threshold", "Axis Deadzone", axis_threshold)
-         CONFIG_INT(g_settings.input.turbo_period, "input_turbo_period", "Turbo Period", turbo_period)
-         CONFIG_INT(g_settings.input.turbo_duty_cycle, "input_duty_cycle", "Duty Cycle", turbo_duty_cycle)
+         CONFIG_UINT(g_settings.input.turbo_period, "input_turbo_period", "Turbo Period", turbo_period)
+         CONFIG_UINT(g_settings.input.turbo_duty_cycle, "input_duty_cycle", "Duty Cycle", turbo_duty_cycle)
       END_SUB_GROUP()
 
       START_SUB_GROUP("Misc")
