@@ -37,39 +37,50 @@ static struct
    bool landscape_left;
    bool landscape_right;
    
+   bool logging_enabled;
+   
    char bluetooth_mode[64];
+   
+   struct
+   {
+      int stdout;
+      int stderr;
+   
+      FILE* file;
+   }  logging;
 } apple_frontend_settings;
 
 const rarch_setting_t* apple_get_frontend_settings()
 {
-   static rarch_setting_t settings[14];
+   static rarch_setting_t settings[16];
 
    settings[0]  = setting_data_group_setting(ST_GROUP, "Frontend Settings");
    settings[1]  = setting_data_group_setting(ST_SUB_GROUP, "Frontend");
-   settings[2]  = setting_data_bool_setting("ios_tv_mode", "TV Mode", &apple_use_tv_mode, false);
-   settings[3]  = setting_data_group_setting(ST_END_SUB_GROUP, 0);
+   settings[2]  = setting_data_bool_setting("ios_use_file_log", "Enable File Logging",
+                     &apple_frontend_settings.logging_enabled, false);
+   settings[3]  = setting_data_bool_setting("ios_tv_mode", "TV Mode", &apple_use_tv_mode, false);
+   settings[4]  = setting_data_group_setting(ST_END_SUB_GROUP, 0);
    
-   settings[4]  = setting_data_group_setting(ST_SUB_GROUP, "Bluetooth");
-   settings[5]  = setting_data_string_setting("ios_btmode", "Mode", apple_frontend_settings.bluetooth_mode,
-      sizeof(apple_frontend_settings.bluetooth_mode), "keyboard");
-   settings[6]  = setting_data_group_setting(ST_END_SUB_GROUP, 0);
+   settings[5]  = setting_data_group_setting(ST_SUB_GROUP, "Bluetooth");
+   settings[6]  = setting_data_string_setting("ios_btmode", "Mode", apple_frontend_settings.bluetooth_mode,
+                     sizeof(apple_frontend_settings.bluetooth_mode), "keyboard");
+   settings[7]  = setting_data_group_setting(ST_END_SUB_GROUP, 0);
 
-   settings[7]  = setting_data_group_setting(ST_SUB_GROUP, "Orientations");
-   settings[8]  = setting_data_bool_setting("ios_allow_portrait", "Portrait",
+   settings[8]  = setting_data_group_setting(ST_SUB_GROUP, "Orientations");
+   settings[9]  = setting_data_bool_setting("ios_allow_portrait", "Portrait",
                      &apple_frontend_settings.portrait, true);
-   settings[9]  = setting_data_bool_setting("ios_allow_portrait_upside_down", "Portrait Upside Down",
+   settings[10]  = setting_data_bool_setting("ios_allow_portrait_upside_down", "Portrait Upside Down",
                      &apple_frontend_settings.portrait_upside_down, true);
-   settings[10]  = setting_data_bool_setting("ios_allow_landscape_left", "Landscape Left",
+   settings[11]  = setting_data_bool_setting("ios_allow_landscape_left", "Landscape Left",
                      &apple_frontend_settings.landscape_left, true);
-   settings[11] = setting_data_bool_setting("ios_allow_landscape_right", "Landscape Right",
+   settings[12] = setting_data_bool_setting("ios_allow_landscape_right", "Landscape Right",
                      &apple_frontend_settings.landscape_right, true);
-   settings[12] = setting_data_group_setting(ST_END_SUB_GROUP, 0);
-   settings[13] = setting_data_group_setting(ST_END_GROUP, 0);
+   settings[13] = setting_data_group_setting(ST_END_SUB_GROUP, 0);
+   settings[14] = setting_data_group_setting(ST_END_GROUP, 0);
    
    return settings;
 }
 
-//#define HAVE_DEBUG_FILELOG
 bool is_ios_7()
 {
    return [[UIDevice currentDevice].systemVersion compare:@"7.0" options:NSNumericSearch] != NSOrderedAscending;
@@ -90,6 +101,29 @@ void ios_set_bluetooth_mode(NSString* mode)
       [[RAGameView get] iOS7SetiCadeMode:enabled];
    }
 #endif
+}
+
+void ios_set_logging_state(bool on)
+{
+   fflush(stdout);
+   fflush(stderr);
+
+   if (on && !apple_frontend_settings.logging.file)
+   {
+      apple_frontend_settings.logging.file = fopen([RetroArch_iOS get].logPath.UTF8String, "a");
+      apple_frontend_settings.logging.stdout = dup(1);
+      apple_frontend_settings.logging.stderr = dup(2);
+      dup2(fileno(apple_frontend_settings.logging.file), 1);
+      dup2(fileno(apple_frontend_settings.logging.file), 2);
+   }
+   else if (!on && apple_frontend_settings.logging.file)
+   {
+      dup2(apple_frontend_settings.logging.stdout, 1);
+      dup2(apple_frontend_settings.logging.stderr, 2);
+      
+      fclose(apple_frontend_settings.logging.file);
+      apple_frontend_settings.logging.file = 0;
+   }
 }
 
 // Input helpers: This is kept here because it needs objective-c
@@ -199,6 +233,7 @@ static void handle_touch_event(NSArray* touches)
    self.configDirectory = self.systemDirectory;
    self.globalConfigFile = [NSString stringWithFormat:@"%@/retroarch.cfg", self.configDirectory];
    self.coreDirectory = [NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"modules"];
+   self.logPath = [self.systemDirectory stringByAppendingPathComponent:@"stdout.log"];
 
    if (!path_make_and_check_directory(self.documentsDirectory.UTF8String, 0755, R_OK | W_OK | X_OK))
       apple_display_alert([NSString stringWithFormat:@"Failed to create or access base directory: %@", self.documentsDirectory], 0);
@@ -336,6 +371,9 @@ static void handle_touch_event(NSArray* touches)
 
    // Set bluetooth mode
    ios_set_bluetooth_mode(@(apple_frontend_settings.bluetooth_mode));
+   ios_set_logging_state(apple_frontend_settings.logging_enabled);
+   
+   
 }
 
 #pragma mark PAUSE MENU
@@ -395,13 +433,6 @@ static void handle_touch_event(NSArray* touches)
 int main(int argc, char *argv[])
 {
    @autoreleasepool {
-#if defined(HAVE_DEBUG_FILELOG) && (TARGET_IPHONE_SIMULATOR == 0)
-      NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-      NSString *documentsDirectory = [paths objectAtIndex:0];
-      NSString *logPath = [documentsDirectory stringByAppendingPathComponent:@"console_stdout.log"];
-      freopen([logPath cStringUsingEncoding:NSASCIIStringEncoding], "a", stdout);
-      freopen([logPath cStringUsingEncoding:NSASCIIStringEncoding], "a", stderr);
-#endif
       return UIApplicationMain(argc, argv, NSStringFromClass([RApplication class]), NSStringFromClass([RetroArch_iOS class]));
    }
 }

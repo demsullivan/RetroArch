@@ -172,4 +172,12 @@
 - (id)initWithPath:(NSString*)path action:(void (^)(NSString*))action;
 @end
 
+/*********************************************/
+/* RALogMenu                                 */
+/* Displays a text file line-by-line.        */
+/*********************************************/
+@interface RALogMenu : RAMenuBase
+- (id)initWithFile:(const char*)path;
+@end
+
 #endif

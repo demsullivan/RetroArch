@@ -19,9 +19,6 @@
 #include <UIKit/UIKit.h>
 #include "core_info.h"
 
-// RALogView.m
-@interface RALogView : UITableViewController
-@end
 
 // browser.m
 @class RADirectoryItem;

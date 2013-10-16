@@ -44,6 +44,7 @@
 @property (nonatomic) NSString* documentsDirectory; // e.g. /var/mobile/Documents
 @property (nonatomic) NSString* systemDirectory;    // e.g. /var/mobile/Documents/.RetroArch
 @property (nonatomic) NSString* systemConfigPath;   // e.g. /var/mobile/Documents/.RetroArch/frontend.cfg
+@property (nonatomic) NSString* logPath;
 
 @end
 

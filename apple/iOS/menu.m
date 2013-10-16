@@ -590,7 +590,7 @@ static const void* const associated_core_key = &associated_core_key;
       self.title = @"Frontend Settings";
       
       RAMenuItemBasic* diagnostic_item = [RAMenuItemBasic itemWithDescription:@"Diagnostic Log"
-         action:^{ [weakSelf.navigationController pushViewController:[RALogView new] animated:YES]; }];
+         action:^{ [weakSelf.navigationController pushViewController:[[RALogMenu alloc] initWithFile:RetroArch_iOS.get.logPath.UTF8String] animated:YES]; }];
       [self.sections insertObject:@[@"", diagnostic_item] atIndex:0];
   
       // Core items to load core settings
@@ -820,6 +820,40 @@ static const void* const associated_core_key = &associated_core_key;
 {
    for (int i = 0; i < count; i ++)
       [array addObject:[[RAMenuItemCoreList alloc] initWithCore:apple_get_core_id(&list[i]) parent:self]];
+}
+
+@end
+
+/*********************************************/
+/* RALogMenu                                 */
+/* Displays a text file line-by-line.        */
+/*********************************************/
+@implementation RALogMenu
+
+- (id)initWithFile:(const char*)path
+{
+   if ((self = [super initWithStyle:UITableViewStylePlain]))
+   {
+      NSMutableArray* data = [NSMutableArray arrayWithObject:@""];
+
+      fflush(stdout);
+      fflush(stderr);
+      FILE* file = fopen(path, "r");
+      if (file)
+      {
+         char buffer[1024];
+         while (fgets(buffer, 1024, file))
+            [data addObject:[RAMenuItemBasic itemWithDescription:@(buffer) action:NULL]];
+         fclose(file);
+      }
+      else
+         [data addObject:[RAMenuItemBasic itemWithDescription:@"Logging not enabled" action:NULL]];
+      
+      [self.sections addObject:data];
+      
+   }
+   
+   return self;
 }
 
 @end
