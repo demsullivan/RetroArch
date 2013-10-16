@@ -59,20 +59,33 @@ typedef struct
 
 #define BINDFOR(s) (*(&s)->value.keybind)
 
-const rarch_setting_t* setting_data_get_list();
 
-void setting_data_reset();
-void setting_data_load_current();
+void setting_data_reset(const rarch_setting_t* settings);
 
-bool setting_data_load_config_path(const char* path);
-bool setting_data_load_config(config_file_t* config);
-bool setting_data_save_config_path(const char* path);
-bool setting_data_save_config(config_file_t* config);
+bool setting_data_load_config_path(const rarch_setting_t* settings, const char* path);
+bool setting_data_load_config(const rarch_setting_t* settings, config_file_t* config);
+bool setting_data_save_config_path(const rarch_setting_t* settings, const char* path);
+bool setting_data_save_config(const rarch_setting_t* settings, config_file_t* config);
 
-const rarch_setting_t* setting_data_find_setting(const char* name);
+const rarch_setting_t* setting_data_find_setting(const rarch_setting_t* settings, const char* name);
 
 void setting_data_set_with_string_representation(const rarch_setting_t* setting, const char* value);
 const char* setting_data_get_string_representation(const rarch_setting_t* setting, char* buffer, size_t length);
+
+// List building helper functions
+rarch_setting_t setting_data_group_setting(enum setting_type type, const char* name);
+rarch_setting_t setting_data_bool_setting(const char* name, const char* description, bool* target, bool default_value);
+rarch_setting_t setting_data_int_setting(const char* name, const char* description, int* target, int default_value);
+rarch_setting_t setting_data_uint_setting(const char* name, const char* description, unsigned int* target, unsigned int default_value);
+rarch_setting_t setting_data_float_setting(const char* name, const char* description, float* target, float default_value);
+rarch_setting_t setting_data_path_setting(const char* name, const char* description, char* target, unsigned size, char* default_value);
+rarch_setting_t setting_data_string_setting(const char* name, const char* description, char* target, unsigned size, char* default_value);
+rarch_setting_t setting_data_bind_setting(const char* name, const char* description, struct retro_keybind* target, uint32_t index,
+                                    const struct retro_keybind* default_value);
+
+// These functions operate only on RetroArch's main settings list
+void setting_data_load_current();
+const rarch_setting_t* setting_data_get_list();
 
 // Keyboard
 #include "keycode.h"

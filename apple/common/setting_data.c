@@ -20,20 +20,14 @@
 static const char* get_input_config_prefix(const rarch_setting_t* setting)
 {
    static char buffer[32];
-   if (setting->index)
-      snprintf(buffer, 32, "input_player%d", setting->index);
-   else
-      snprintf(buffer, 32, "input");
+   snprintf(buffer, 32, "input%cplayer%d", setting->index ? '_' : '\0', setting->index);
    return buffer;
 }
 
 static const char* get_input_config_key(const rarch_setting_t* setting, const char* type)
 {
-   static char buffer[32];
-   if (setting->index)
-      snprintf(buffer, 32, "input_player%d_%s%c%s", setting->index, setting->name, type ? '_' : '\0', type);
-   else
-      snprintf(buffer, 32, "input_%s%c%s", setting->name, type ? '_' : '\0', type);
+   static char buffer[64];
+   snprintf(buffer, 64, "%s_%s%c%s", get_input_config_prefix(setting), setting->name, type ? '_' : '\0', type);
    return buffer;
 }
 
@@ -79,31 +73,10 @@ static const char* get_axis_name(const rarch_setting_t* setting)
    return buffer;
 }
 
-
-// HACK
-struct settings fake_settings;
-struct global fake_extern;
-
-// Can't put this below the defines that follow it
-void setting_data_load_current()
+//
+void setting_data_reset(const rarch_setting_t* settings)
 {
-   // TODO: Load defaults
-
-   memcpy(&fake_settings, &g_settings, sizeof(struct settings));
-   memcpy(&fake_extern, &g_extern, sizeof(struct global));
-}
-
-#define g_settings fake_settings
-#define g_extern fake_extern
-
-void setting_data_reset()
-{
-   memset(&fake_settings, 0, sizeof(struct settings));
-   memset(&fake_extern, 0, sizeof(struct global));
-
-   const rarch_setting_t* setting_data = setting_data_get_list();
-   
-   for (const rarch_setting_t* i = setting_data; i->type != ST_NONE; i ++)
+   for (const rarch_setting_t* i = settings; i->type != ST_NONE; i ++)
    {
       switch (i->type)
       {
@@ -117,43 +90,41 @@ void setting_data_reset()
    }
 }
 
-bool setting_data_load_config_path(const char* path)
+bool setting_data_load_config_path(const rarch_setting_t* settings, const char* path)
 {
    config_file_t* config = config_file_new(path);
    
    if (config)
    {
-      setting_data_load_config(config);
+      setting_data_load_config(settings, config);
       config_file_free(config);
    }
    
    return config;
 }
 
-bool setting_data_load_config(config_file_t* config)
+bool setting_data_load_config(const rarch_setting_t* settings, config_file_t* config)
 {
    if (!config)
       return false;
 
-   const rarch_setting_t* setting_data = setting_data_get_list();
-
-   for (int i = 0; setting_data[i].type; i ++)
+   for (const rarch_setting_t* i = settings; i->type != ST_NONE; i ++)
    {
-      switch (setting_data[i].type)
+      switch (i->type)
       {
-         case ST_BOOL:   config_get_bool  (config, setting_data[i].name, setting_data[i].value.boolean); break;
-         case ST_INT:    config_get_int   (config, setting_data[i].name, setting_data[i].value.integer); break;
-         case ST_UINT:   config_get_uint  (config, setting_data[i].name, setting_data[i].value.unsigned_integer); break;
-         case ST_FLOAT:  config_get_float (config, setting_data[i].name, setting_data[i].value.fraction); break;
-         case ST_PATH:   config_get_array (config, setting_data[i].name, setting_data[i].value.string, setting_data[i].size); break;
-         case ST_STRING: config_get_array (config, setting_data[i].name, setting_data[i].value.string, setting_data[i].size); break;
+         case ST_BOOL:   config_get_bool  (config, i->name, i->value.boolean); break;
+         case ST_INT:    config_get_int   (config, i->name, i->value.integer); break;
+         case ST_UINT:   config_get_uint  (config, i->name, i->value.unsigned_integer); break;
+         case ST_FLOAT:  config_get_float (config, i->name, i->value.fraction); break;
+         case ST_PATH:   config_get_array (config, i->name, i->value.string, i->size); break;
+         case ST_STRING: config_get_array (config, i->name, i->value.string, i->size); break;
          
          case ST_BIND:
          {
-            const char* prefix = get_input_config_prefix(&setting_data[i]);
-            input_config_parse_key       (config, prefix, setting_data[i].name, setting_data[i].value.keybind);
-            input_config_parse_joy_button(config, prefix, setting_data[i].name, setting_data[i].value.keybind);
-            input_config_parse_joy_axis  (config, prefix, setting_data[i].name, setting_data[i].value.keybind);
+            const char* prefix = get_input_config_prefix(i);
+            input_config_parse_key       (config, prefix, i->name, i->value.keybind);
+            input_config_parse_joy_button(config, prefix, i->name, i->value.keybind);
+            input_config_parse_joy_axis  (config, prefix, i->name, i->value.keybind);
             break;
          }
          
@@ -165,44 +136,41 @@ bool setting_data_load_config(config_file_t* config)
    return true;
 }
 
-
-bool setting_data_save_config_path(const char* path)
+bool setting_data_save_config_path(const rarch_setting_t* settings, const char* path)
 {
    config_file_t* config = config_file_new(path);
    
    if (!config)
       config = config_file_new(0);
    
-   setting_data_save_config(config);
+   setting_data_save_config(settings, config);
    bool result = config_file_write(config, path);
    config_file_free(config);
    
    return result;
 }
 
-bool setting_data_save_config(config_file_t* config)
+bool setting_data_save_config(const rarch_setting_t* settings, config_file_t* config)
 {
    if (!config)
       return false;
 
-   const rarch_setting_t* setting_data = setting_data_get_list();
-
-   for (int i = 0; setting_data[i].type; i ++)
+   for (const rarch_setting_t* i = settings; i->type != ST_NONE; i ++)
    {
-      switch (setting_data[i].type)
+      switch (i->type)
       {
-         case ST_BOOL:   config_set_bool  (config, setting_data[i].name, *setting_data[i].value.boolean); break;
-         case ST_INT:    config_set_int   (config, setting_data[i].name, *setting_data[i].value.integer); break;
-         case ST_UINT:   config_set_uint64(config, setting_data[i].name, *setting_data[i].value.unsigned_integer); break;
-         case ST_FLOAT:  config_set_float (config, setting_data[i].name, *setting_data[i].value.fraction); break;
-         case ST_PATH:   config_set_string(config, setting_data[i].name,  setting_data[i].value.string); break;
-         case ST_STRING: config_set_string(config, setting_data[i].name,  setting_data[i].value.string); break;
+         case ST_BOOL:   config_set_bool  (config, i->name, *i->value.boolean); break;
+         case ST_INT:    config_set_int   (config, i->name, *i->value.integer); break;
+         case ST_UINT:   config_set_uint64(config, i->name, *i->value.unsigned_integer); break;
+         case ST_FLOAT:  config_set_float (config, i->name, *i->value.fraction); break;
+         case ST_PATH:   config_set_string(config, i->name,  i->value.string); break;
+         case ST_STRING: config_set_string(config, i->name,  i->value.string); break;
          
          case ST_BIND:
          {
-            config_set_string(config, get_input_config_key(&setting_data[i], 0     ), get_key_name(&setting_data[i]));
-            config_set_string(config, get_input_config_key(&setting_data[i], "btn" ), get_button_name(&setting_data[i]));
-            config_set_string(config, get_input_config_key(&setting_data[i], "axis"), get_axis_name(&setting_data[i]));
+            config_set_string(config, get_input_config_key(i, 0     ), get_key_name(i));
+            config_set_string(config, get_input_config_key(i, "btn" ), get_button_name(i));
+            config_set_string(config, get_input_config_key(i, "axis"), get_axis_name(i));
             break;
          }
          
@@ -214,14 +182,12 @@ bool setting_data_save_config(config_file_t* config)
    return true;
 }
 
-const rarch_setting_t* setting_data_find_setting(const char* name)
+const rarch_setting_t* setting_data_find_setting(const rarch_setting_t* settings, const char* name)
 {
    if (!name)
       return 0;
 
-   const rarch_setting_t* setting_data = setting_data_get_list();
-
-   for (const rarch_setting_t* i = setting_data; i->type != ST_NONE; i ++)
+   for (const rarch_setting_t* i = settings; i->type != ST_NONE; i ++)
       if (i->type <= ST_GROUP && strcmp(i->name, name) == 0)
          return i;
 
@@ -271,13 +237,13 @@ const char* setting_data_get_string_representation(const rarch_setting_t* settin
    return buffer;
 }
 
-static rarch_setting_t group_setting(enum setting_type type, const char* name)
+rarch_setting_t setting_data_group_setting(enum setting_type type, const char* name)
 {
    rarch_setting_t result = { type, name };
    return result;
 }
 
-static rarch_setting_t bool_setting(const char* name, const char* description, bool* target, bool default_value)
+rarch_setting_t setting_data_bool_setting(const char* name, const char* description, bool* target, bool default_value)
 {
    rarch_setting_t result = { ST_BOOL, name, sizeof(bool), description };
    result.value.boolean = target;
@@ -285,7 +251,7 @@ static rarch_setting_t bool_setting(const char* name, const char* description, b
    return result;
 }
 
-static rarch_setting_t int_setting(const char* name, const char* description, int* target, int default_value)
+rarch_setting_t setting_data_int_setting(const char* name, const char* description, int* target, int default_value)
 {
    rarch_setting_t result = { ST_INT, name, sizeof(bool), description };
    result.value.integer = target;
@@ -293,7 +259,7 @@ static rarch_setting_t int_setting(const char* name, const char* description, in
    return result;
 }
 
-static rarch_setting_t uint_setting(const char* name, const char* description, unsigned int* target, unsigned int default_value)
+rarch_setting_t setting_data_uint_setting(const char* name, const char* description, unsigned int* target, unsigned int default_value)
 {
    rarch_setting_t result = { ST_UINT, name, sizeof(bool), description };
    result.value.unsigned_integer = target;
@@ -301,7 +267,7 @@ static rarch_setting_t uint_setting(const char* name, const char* description, u
    return result;
 }
 
-static rarch_setting_t float_setting(const char* name, const char* description, float* target, float default_value)
+rarch_setting_t setting_data_float_setting(const char* name, const char* description, float* target, float default_value)
 {
    rarch_setting_t result = { ST_FLOAT, name, sizeof(bool), description };
    result.value.fraction = target;
@@ -309,7 +275,7 @@ static rarch_setting_t float_setting(const char* name, const char* description, 
    return result;
 }
 
-static rarch_setting_t path_setting(const char* name, const char* description, char* target, unsigned size, char* default_value)
+rarch_setting_t setting_data_path_setting(const char* name, const char* description, char* target, unsigned size, char* default_value)
 {
    rarch_setting_t result = { ST_PATH, name, size, description };
    result.value.string = target;
@@ -317,7 +283,7 @@ static rarch_setting_t path_setting(const char* name, const char* description, c
    return result;
 }
 
-static rarch_setting_t string_setting(const char* name, const char* description, char* target, unsigned size, char* default_value)
+rarch_setting_t setting_data_string_setting(const char* name, const char* description, char* target, unsigned size, char* default_value)
 {
    rarch_setting_t result = { ST_STRING, name, size, description };
    result.value.string = target;
@@ -325,7 +291,7 @@ static rarch_setting_t string_setting(const char* name, const char* description,
    return result;
 }
 
-static rarch_setting_t bind_setting(const char* name, const char* description, struct retro_keybind* target, uint32_t index,
+rarch_setting_t setting_data_bind_setting(const char* name, const char* description, struct retro_keybind* target, uint32_t index,
                                     const struct retro_keybind* default_value)
 {
    rarch_setting_t result = { ST_BIND, name, 0, description };
@@ -335,21 +301,38 @@ static rarch_setting_t bind_setting(const char* name, const char* description, s
    return result;
 }
 
+
+// HACK
+struct settings fake_settings;
+struct global fake_extern;
+
+void setting_data_load_current()
+{
+   // TODO: Load defaults
+
+   memcpy(&fake_settings, &g_settings, sizeof(struct settings));
+   memcpy(&fake_extern, &g_extern, sizeof(struct global));
+}
+
+#define g_settings fake_settings
+#define g_extern fake_extern
+
+
 #define DEFAULT_ME_YO 0
 #define NEXT (list[index++])
-#define START_GROUP(NAME)                       NEXT = group_setting (ST_GROUP, NAME);
-#define END_GROUP()                             NEXT = group_setting (ST_END_GROUP, 0);
-#define START_SUB_GROUP(NAME)                   NEXT = group_setting (ST_SUB_GROUP, NAME);
-#define END_SUB_GROUP()                         NEXT = group_setting (ST_END_SUB_GROUP, 0);
-#define CONFIG_BOOL(TARGET, NAME, SHORT, DEF)   NEXT = bool_setting  (NAME, SHORT, &TARGET, DEF);
-#define CONFIG_INT(TARGET, NAME, SHORT, DEF)    NEXT = int_setting   (NAME, SHORT, &TARGET, DEF);
-#define CONFIG_UINT(TARGET, NAME, SHORT, DEF)   NEXT = uint_setting  (NAME, SHORT, &TARGET, DEF);
-#define CONFIG_FLOAT(TARGET, NAME, SHORT, DEF)  NEXT = float_setting (NAME, SHORT, &TARGET, DEF);
-#define CONFIG_PATH(TARGET, NAME, SHORT, DEF)   NEXT = path_setting  (NAME, SHORT, TARGET, sizeof(TARGET), DEF);
-#define CONFIG_STRING(TARGET, NAME, SHORT, DEF) NEXT = string_setting(NAME, SHORT, TARGET, sizeof(TARGET), DEF);
+#define START_GROUP(NAME)                       NEXT = setting_data_group_setting (ST_GROUP, NAME);
+#define END_GROUP()                             NEXT = setting_data_group_setting (ST_END_GROUP, 0);
+#define START_SUB_GROUP(NAME)                   NEXT = setting_data_group_setting (ST_SUB_GROUP, NAME);
+#define END_SUB_GROUP()                         NEXT = setting_data_group_setting (ST_END_SUB_GROUP, 0);
+#define CONFIG_BOOL(TARGET, NAME, SHORT, DEF)   NEXT = setting_data_bool_setting  (NAME, SHORT, &TARGET, DEF);
+#define CONFIG_INT(TARGET, NAME, SHORT, DEF)    NEXT = setting_data_int_setting   (NAME, SHORT, &TARGET, DEF);
+#define CONFIG_UINT(TARGET, NAME, SHORT, DEF)   NEXT = setting_data_uint_setting  (NAME, SHORT, &TARGET, DEF);
+#define CONFIG_FLOAT(TARGET, NAME, SHORT, DEF)  NEXT = setting_data_float_setting (NAME, SHORT, &TARGET, DEF);
+#define CONFIG_PATH(TARGET, NAME, SHORT, DEF)   NEXT = setting_data_path_setting  (NAME, SHORT, TARGET, sizeof(TARGET), DEF);
+#define CONFIG_STRING(TARGET, NAME, SHORT, DEF) NEXT = setting_data_string_setting(NAME, SHORT, TARGET, sizeof(TARGET), DEF);
 #define CONFIG_HEX(TARGET, NAME, SHORT)
 #define CONFIG_BIND(TARGET, PLAYER, NAME, SHORT, DEF) \
-   NEXT = bind_setting  (NAME, SHORT, &TARGET, PLAYER, DEF);
+   NEXT = setting_data_bind_setting  (NAME, SHORT, &TARGET, PLAYER, DEF);
 
 // TODO: Add black_frame_insertion, swap_interval msg_color video.rotation audio.block_frames audio.in_rate fast_forward_ratio
 //       rgui_show_start_screen

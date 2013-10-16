@@ -231,12 +231,12 @@ static const void* associated_name_tag = (void*)&associated_name_tag;
       }
    }
    
-   setting_data_load_config_path(apple_platform.globalConfigFile.UTF8String);
+   setting_data_load_config_path(setting_data_get_list(), apple_platform.globalConfigFile.UTF8String);
 }
 
 - (void)windowWillClose:(NSNotification *)notification
 {
-   setting_data_save_config_path(apple_platform.globalConfigFile.UTF8String);
+   setting_data_save_config_path(setting_data_get_list(), apple_platform.globalConfigFile.UTF8String);
 
    apple_exit_stasis(true);
    [NSApp stopModal];

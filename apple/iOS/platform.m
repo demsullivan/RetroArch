@@ -30,6 +30,44 @@
 
 #include "file.h"
 
+static struct
+{
+   bool portrait;
+   bool portrait_upside_down;
+   bool landscape_left;
+   bool landscape_right;
+   
+   char bluetooth_mode[64];
+} apple_frontend_settings;
+
+const rarch_setting_t* apple_get_frontend_settings()
+{
+   static rarch_setting_t settings[14];
+
+   settings[0]  = setting_data_group_setting(ST_GROUP, "Frontend Settings");
+   settings[1]  = setting_data_group_setting(ST_SUB_GROUP, "Frontend");
+   settings[2]  = setting_data_bool_setting("ios_tv_mode", "TV Mode", &apple_use_tv_mode, false);
+   settings[3]  = setting_data_group_setting(ST_END_SUB_GROUP, 0);
+   
+   settings[4]  = setting_data_group_setting(ST_SUB_GROUP, "Bluetooth");
+   settings[5]  = setting_data_string_setting("ios_btmode", "Mode", apple_frontend_settings.bluetooth_mode,
+      sizeof(apple_frontend_settings.bluetooth_mode), "keyboard");
+   settings[6]  = setting_data_group_setting(ST_END_SUB_GROUP, 0);
+
+   settings[7]  = setting_data_group_setting(ST_SUB_GROUP, "Orientations");
+   settings[8]  = setting_data_bool_setting("ios_allow_portrait", "Portrait",
+                     &apple_frontend_settings.portrait, true);
+   settings[9]  = setting_data_bool_setting("ios_allow_portrait_upside_down", "Portrait Upside Down",
+                     &apple_frontend_settings.portrait_upside_down, true);
+   settings[10]  = setting_data_bool_setting("ios_allow_landscape_left", "Landscape Left",
+                     &apple_frontend_settings.landscape_left, true);
+   settings[11] = setting_data_bool_setting("ios_allow_landscape_right", "Landscape Right",
+                     &apple_frontend_settings.landscape_right, true);
+   settings[12] = setting_data_group_setting(ST_END_SUB_GROUP, 0);
+   settings[13] = setting_data_group_setting(ST_END_GROUP, 0);
+   
+   return settings;
+}
 
 //#define HAVE_DEBUG_FILELOG
 bool is_ios_7()
@@ -277,39 +315,27 @@ static void handle_touch_event(NSArray* touches)
 #pragma mark FRONTEND CONFIG
 - (void)refreshSystemConfig
 {
-   // Read load time settings
-   config_file_t* conf = config_file_new([self.systemConfigPath UTF8String]);
+   const rarch_setting_t* frontend_settings = apple_get_frontend_settings();
+   
+   setting_data_reset(frontend_settings);
+   setting_data_load_config_path(frontend_settings, self.systemConfigPath.UTF8String);
 
    // Get enabled orientations
-   static const struct { const char* setting; uint32_t orientation; } orientationSettings[4] =
+   static const struct { const bool* value; uint32_t orientation; } orientationSettings[4] =
    {
-      { "ios_allow_portrait", UIInterfaceOrientationMaskPortrait },
-      { "ios_allow_portrait_upside_down", UIInterfaceOrientationMaskPortraitUpsideDown },
-      { "ios_allow_landscape_left", UIInterfaceOrientationMaskLandscapeLeft },
-      { "ios_allow_landscape_right", UIInterfaceOrientationMaskLandscapeRight }
+      { &apple_frontend_settings.portrait, UIInterfaceOrientationMaskPortrait },
+      { &apple_frontend_settings.portrait_upside_down, UIInterfaceOrientationMaskPortraitUpsideDown },
+      { &apple_frontend_settings.landscape_left, UIInterfaceOrientationMaskLandscapeLeft },
+      { &apple_frontend_settings.landscape_right, UIInterfaceOrientationMaskLandscapeRight }
    };
    
    _enabledOrientations = 0;
    
    for (int i = 0; i < 4; i ++)
-   {
-      bool enabled = false;
-      bool found = conf && config_get_bool(conf, orientationSettings[i].setting, &enabled);
-         
-      if (!found || enabled)
-         _enabledOrientations |= orientationSettings[i].orientation;
-   }
+      _enabledOrientations |= (*orientationSettings[i].value) ? orientationSettings[i].orientation : 0;
 
-   if (conf)
-   {
-      // Setup bluetooth mode
-      ios_set_bluetooth_mode(objc_get_value_from_config(conf, @"ios_btmode", @"keyboard"));
-
-      bool val;
-      apple_use_tv_mode = config_get_bool(conf, "ios_tv_mode", &val) && val;
-      
-      config_file_free(conf);
-   }
+   // Set bluetooth mode
+   ios_set_bluetooth_mode(@(apple_frontend_settings.bluetooth_mode));
 }
 
 #pragma mark PAUSE MENU

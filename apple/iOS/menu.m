@@ -122,10 +122,10 @@
 /*********************************************/
 @implementation RAMenuItemBooleanSetting
 
-+ (RAMenuItemBooleanSetting*)itemForSetting:(const char*)setting_name
++ (RAMenuItemBooleanSetting*)itemForSetting:(const rarch_setting_t*)setting
 {
    RAMenuItemBooleanSetting* item = [RAMenuItemBooleanSetting new];
-   item.setting = setting_data_find_setting(setting_name);
+   item.setting = setting;
    return item;
 }
 
@@ -174,10 +174,10 @@
 
 @implementation RAMenuItemGeneralSetting
 
-+ (RAMenuItemGeneralSetting*)itemForSetting:(const char*)setting_name
++ (RAMenuItemGeneralSetting*)itemForSetting:(const rarch_setting_t*)setting
 {
    RAMenuItemGeneralSetting* item = [RAMenuItemGeneralSetting new];
-   item.setting = setting_data_find_setting(setting_name);
+   item.setting = setting;
    
    if (item.setting->type == ST_INT || item.setting->type == ST_UINT || item.setting->type == ST_FLOAT)
       item.formatter = [[RANumberFormatter alloc] initWithSetting:item.setting];
@@ -245,10 +245,10 @@
 @interface RAMenuItemPathSetting() <RADirectoryListDelegate> @end
 @implementation RAMenuItemPathSetting
 
-+ (RAMenuItemPathSetting*)itemForSetting:(const char*)setting_name
++ (RAMenuItemPathSetting*)itemForSetting:(const rarch_setting_t*)setting
 {
    RAMenuItemPathSetting* item = [RAMenuItemPathSetting new];
-   item.setting = setting_data_find_setting(setting_name);
+   item.setting = setting;
    return item;
 }
 
@@ -282,10 +282,10 @@
 
 @implementation RAMenuItemBindSetting
 
-+ (RAMenuItemBindSetting*)itemForSetting:(const char*)setting_name
++ (RAMenuItemBindSetting*)itemForSetting:(const rarch_setting_t*)setting
 {
    RAMenuItemBindSetting* item = [RAMenuItemBindSetting new];
-   item.setting = setting_data_find_setting(setting_name);
+   item.setting = setting;
    return item;
 }
 
@@ -478,6 +478,8 @@
 /*********************************************/
 static const void* const associated_core_key = &associated_core_key;
 
+// TODO: Fix this ugliness!
+
 @interface RAFrontendSettingsMenu() <UIAlertViewDelegate> @end
 @implementation RAFrontendSettingsMenu
 
@@ -486,8 +488,36 @@ static const void* const associated_core_key = &associated_core_key;
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
       RAFrontendSettingsMenu* __weak weakSelf = self;
+
+      self.title = @"Frontend Settings";
+
+      const rarch_setting_t* apple_get_frontend_settings();
+      const rarch_setting_t* frontend_setting_data = apple_get_frontend_settings();
+   
+      NSMutableArray* settings = nil;
+
+      for (const rarch_setting_t* i = frontend_setting_data + 1; i->type != ST_END_GROUP; i ++)
+      {
+         if (i->type == ST_SUB_GROUP)
+            settings = [NSMutableArray arrayWithObjects:@(i->name), nil];
+         else if (i->type == ST_END_SUB_GROUP)
+         {
+            if (settings.count)
+               [self.sections addObject:settings];
+         }
+         else if (i->type == ST_BOOL)
+            [settings addObject:[RAMenuItemBooleanSetting itemForSetting:i]];
+         else if (i->type == ST_INT || i->type == ST_UINT || i->type == ST_FLOAT || i->type == ST_STRING)
+            [settings addObject:[RAMenuItemGeneralSetting itemForSetting:i]];
+         else if (i->type == ST_PATH)
+            [settings addObject:[RAMenuItemPathSetting itemForSetting:i]];
+         else if (i->type == ST_BIND)
+            [settings addObject:[RAMenuItemBindSetting itemForSetting:i]];
+      }
+
    
       NSMutableArray* cores = [NSMutableArray arrayWithObject:@"Cores"];
+      
       [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config"
          action: ^{ [weakSelf showCoreConfigFor:nil]; }]];
 
@@ -497,28 +527,7 @@ static const void* const associated_core_key = &associated_core_key;
             association:apple_get_core_id(&core_list->list[i])
             action: ^(id userdata) { [weakSelf showCoreConfigFor:userdata]; }
             detail: ^(id userdata) { return apple_core_info_has_custom_config([userdata UTF8String]) ? @"[Custom]" : @"[Global]"; }]];
-  
-      self.sections =
-      (id)@[
-         @[ @"Frontend",
-            [RAMenuItemBasic itemWithDescription:@"Diagnostic Log"
-               action: ^{ [weakSelf.navigationController pushViewController:[RALogView new] animated:YES]; }],
-            [RAMenuItemBasic itemWithDescription:@"TV Mode" action:^{ }]
-         ],
-         
-         @[ @"Bluetooth",
-            [RAMenuItemBasic itemWithDescription:@"Mode" action:^{ }]
-         ],
-         
-         @[ @"Orientations",
-            [RAMenuItemBasic itemWithDescription:@"Portrait" action:^{ }],
-            [RAMenuItemBasic itemWithDescription:@"Portrait Upside Down" action:^{ }],
-            [RAMenuItemBasic itemWithDescription:@"Landscape Left" action:^{ }],
-            [RAMenuItemBasic itemWithDescription:@"Landscape Right" action:^{ }]
-         ],
-         
-         cores
-      ];
+      [self.sections addObject:cores];
    }
    
    return self;
@@ -584,8 +593,10 @@ static const void* const associated_core_key = &associated_core_key;
       else
          _pathToSave = apple_platform.globalConfigFile;
       
-      setting_data_reset();
-      setting_data_load_config_path(_pathToSave.UTF8String);
+      const rarch_setting_t* setting_data = setting_data_get_list();
+      
+      setting_data_reset(setting_data);
+      setting_data_load_config_path(setting_data, _pathToSave.UTF8String);
       
       // HACK: Load the key mapping table
       apple_input_find_any_key(0);
@@ -596,7 +607,6 @@ static const void* const associated_core_key = &associated_core_key;
       NSMutableArray* settings = [NSMutableArray arrayWithObjects:@"", nil];
       [self.sections addObject:settings];
 
-      const rarch_setting_t* setting_data = setting_data_get_list();
       for (const rarch_setting_t* i = setting_data; i->type != ST_NONE; i ++)
          if (i->type == ST_GROUP)
             [settings addObject:[RAMenuItemBasic itemWithDescription:@(i->name) action:
@@ -618,7 +628,7 @@ static const void* const associated_core_key = &associated_core_key;
       self.title = @(group->name);
    
       NSMutableArray* settings = nil;
-   
+
       for (const rarch_setting_t* i = group + 1; i->type != ST_END_GROUP; i ++)
       {
          if (i->type == ST_SUB_GROUP)
@@ -629,13 +639,13 @@ static const void* const associated_core_key = &associated_core_key;
                [self.sections addObject:settings];
          }
          else if (i->type == ST_BOOL)
-            [settings addObject:[RAMenuItemBooleanSetting itemForSetting:i->name]];
+            [settings addObject:[RAMenuItemBooleanSetting itemForSetting:i]];
          else if (i->type == ST_INT || i->type == ST_UINT || i->type == ST_FLOAT || i->type == ST_STRING)
-            [settings addObject:[RAMenuItemGeneralSetting itemForSetting:i->name]];
+            [settings addObject:[RAMenuItemGeneralSetting itemForSetting:i]];
          else if (i->type == ST_PATH)
-            [settings addObject:[RAMenuItemPathSetting itemForSetting:i->name]];
+            [settings addObject:[RAMenuItemPathSetting itemForSetting:i]];
          else if (i->type == ST_BIND)
-            [settings addObject:[RAMenuItemBindSetting itemForSetting:i->name]];
+            [settings addObject:[RAMenuItemBindSetting itemForSetting:i]];
       }
    }
 
@@ -645,7 +655,7 @@ static const void* const associated_core_key = &associated_core_key;
 - (void)dealloc
 {
    if (self.pathToSave)
-      setting_data_save_config_path(self.pathToSave.UTF8String);
+      setting_data_save_config_path(setting_data_get_list(), self.pathToSave.UTF8String);
 }
 
 @end
