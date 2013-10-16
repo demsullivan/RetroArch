@@ -205,7 +205,7 @@ static void handle_touch_event(NSArray* touches)
    UIWindow* _window;
    NSString* _path;
 
-   bool _isGameTop, _isRomList;
+   bool _isGameTop;
    uint32_t _enabledOrientations;
 }
 
@@ -278,27 +278,14 @@ static void handle_touch_event(NSArray* touches)
 // UINavigationControllerDelegate
 - (void)navigationController:(UINavigationController *)navigationController willShowViewController:(UIViewController *)viewController animated:(BOOL)animated
 {
+   apple_input_reset_icade_buttons();
    _isGameTop = [viewController isKindOfClass:[RAGameView class]];
-   _isRomList = [viewController isKindOfClass:[RADirectoryList class]];
 
    [[UIApplication sharedApplication] setStatusBarHidden:_isGameTop withAnimation:UIStatusBarAnimationNone];
    [[UIApplication sharedApplication] setIdleTimerDisabled:_isGameTop];
 
-   self.navigationBarHidden = _isGameTop;
-   [self setToolbarHidden:!_isRomList animated:YES];
-}
-
-// UINavigationController: Never animate when pushing onto, or popping, an RAGameView
-- (void)pushViewController:(UIViewController*)theView animated:(BOOL)animated
-{
-   apple_input_reset_icade_buttons();
-   [super pushViewController:theView animated:animated && !_isGameTop];
-}
-
-- (UIViewController*)popViewControllerAnimated:(BOOL)animated
-{
-   apple_input_reset_icade_buttons();
-   return [super popViewControllerAnimated:animated && !_isGameTop];
+   [self setNavigationBarHidden:_isGameTop animated:!_isGameTop];
+   [self setToolbarHidden:!viewController.toolbarItems.count animated:YES];
 }
 
 // NOTE: This version only runs on iOS6
