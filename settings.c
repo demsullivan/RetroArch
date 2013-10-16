@@ -283,6 +283,7 @@ void config_set_defaults(void)
       *g_extern.savefile_dir = '\0';
    if (!g_extern.has_set_state_path)
       *g_extern.savestate_dir = '\0';
+   *g_settings.libretro_info_path = '\0';
    *g_settings.core_options_path = '\0';
    *g_settings.game_history_path = '\0';
    *g_settings.cheat_database = '\0';
@@ -297,7 +298,7 @@ void config_set_defaults(void)
 #endif
 
 #ifdef RARCH_CONSOLE
-   g_extern.lifecycle_mode_state |= ((1ULL << MODE_INFO_DRAW) | (1ULL << MODE_MENU));
+   g_extern.lifecycle_mode_state |= (1ULL << MODE_MENU);
 
    strlcpy(g_settings.system_directory, default_paths.system_dir, sizeof(g_settings.system_directory));
 
@@ -349,6 +350,10 @@ void config_set_defaults(void)
 #elif defined(ANDROID)
    strlcpy(g_settings.video.shader_dir, "/data/data/org.retroarch/shaders_glsl/", sizeof(g_settings.video.shader_dir));
 #endif
+#endif
+
+#ifdef ANDROID
+   strlcpy(g_settings.libretro_info_path, "/data/data/org.retroarch/info/", sizeof(g_settings.libretro_info_path));
 #endif
 
    g_extern.config_save_on_exit = config_save_on_exit;
@@ -609,7 +614,6 @@ bool config_load_file(const char *path)
 
    CONFIG_GET_BOOL_EXTERN(console.screen.gamma_correction, "gamma_correction");
 
-   bool msg_enable = false;
    bool triple_buffering_enable = false;
    bool custom_bgm_enable = false;
    bool flicker_filter_enable = false;
@@ -619,14 +623,6 @@ bool config_load_file(const char *path)
    if (config_get_path(conf, "menu_texture_path", tmp_str, sizeof(tmp_str)))
       strlcpy(g_extern.menu_texture_path, tmp_str, sizeof(g_extern.menu_texture_path));
 #endif
-
-   if (config_get_bool(conf, "info_msg_enable", &msg_enable))
-   {
-      if (msg_enable)
-         g_extern.lifecycle_mode_state |= (1ULL << MODE_INFO_DRAW);
-      else 
-         g_extern.lifecycle_mode_state &= ~(1ULL << MODE_INFO_DRAW);
-   }
 
    if (config_get_bool(conf, "triple_buffering_enable", &triple_buffering_enable))
    {
@@ -666,10 +662,10 @@ bool config_load_file(const char *path)
    CONFIG_GET_INT_EXTERN(console.sound.volume_level, "sound_volume_level");
 #endif
    CONFIG_GET_INT_EXTERN(console.screen.resolutions.current.id, "current_resolution_id");
-   CONFIG_GET_INT_EXTERN(state_slot, "state_slot");
-   CONFIG_GET_INT_EXTERN(audio_data.mute, "audio_mute");
    CONFIG_GET_INT_EXTERN(console.sound.mode, "sound_mode");
 #endif
+   CONFIG_GET_INT_EXTERN(state_slot, "state_slot");
+   CONFIG_GET_INT_EXTERN(audio_data.mute, "audio_mute");
 
    CONFIG_GET_INT_EXTERN(console.screen.viewports.custom_vp.x, "custom_viewport_x");
    CONFIG_GET_INT_EXTERN(console.screen.viewports.custom_vp.y, "custom_viewport_y");
@@ -732,6 +728,10 @@ bool config_load_file(const char *path)
 
    if (!*g_settings.libretro)
       CONFIG_GET_PATH(libretro, "libretro_path");
+
+   CONFIG_GET_BOOL(fps_show, "fps_show");
+
+   CONFIG_GET_PATH(libretro_info_path, "libretro_info_path");
 
    CONFIG_GET_PATH(core_options_path, "core_options_path");
    CONFIG_GET_PATH(screenshot_directory, "screenshot_directory");
@@ -1043,7 +1043,9 @@ bool config_save_file(const char *path)
 
    RARCH_LOG("Saving config at path: \"%s\"\n", path);
 
+   config_set_bool(conf, "fps_show", g_settings.fps_show);
    config_set_string(conf, "libretro_path", g_settings.libretro);
+   config_set_string(conf, "libretro_info_path", g_settings.libretro_info_path);
    config_set_string(conf, "cheat_database_path", g_settings.cheat_database);
    config_set_bool(conf, "rewind_enable", g_settings.rewind_enable);
    config_set_int(conf, "rewind_granularity", g_settings.rewind_granularity);
@@ -1110,12 +1112,10 @@ bool config_save_file(const char *path)
    config_set_int(conf, "sound_volume_level", g_extern.console.sound.volume_level);
 #endif
    bool triple_buffering_enable_val = g_extern.lifecycle_mode_state & (1ULL << MODE_VIDEO_TRIPLE_BUFFERING_ENABLE);
-   bool info_msg_enable_val = g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW);
    bool soft_filter_enable_val = g_extern.lifecycle_mode_state & (1ULL << MODE_VIDEO_SOFT_FILTER_ENABLE);
    bool flicker_filter_enable_val = g_extern.lifecycle_mode_state & (1ULL << MODE_VIDEO_FLICKER_FILTER_ENABLE);
 
    config_set_bool(conf, "triple_buffering_enable", triple_buffering_enable_val);
-   config_set_bool(conf, "info_msg_enable", info_msg_enable_val);
    config_set_bool(conf, "soft_filter_enable", soft_filter_enable_val);
    config_set_bool(conf, "flicker_filter_enable", flicker_filter_enable_val);
 
@@ -1326,20 +1326,7 @@ void settings_set(uint64_t settings)
       g_settings.video.refresh_rate += 0.01f;
 
    if (settings & (1ULL << S_INFO_DEBUG_MSG_TOGGLE))
-   {
-      if (g_extern.lifecycle_mode_state & (1ULL << MODE_FPS_DRAW))
-         g_extern.lifecycle_mode_state &= ~(1ULL << MODE_FPS_DRAW);
-      else
-         g_extern.lifecycle_mode_state |= (1ULL << MODE_FPS_DRAW);
-   }
-
-   if (settings & (1ULL << S_INFO_MSG_TOGGLE))
-   {
-      if (g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW))
-         g_extern.lifecycle_mode_state &= ~(1ULL << MODE_INFO_DRAW);
-      else
-         g_extern.lifecycle_mode_state |= (1ULL << MODE_INFO_DRAW);
-   }
+      g_settings.fps_show = !g_settings.fps_show;
 
    if (settings & (1ULL << S_DEF_ASPECT_RATIO))
       g_settings.video.aspect_ratio_idx = aspect_ratio_idx;
@@ -1372,8 +1359,5 @@ void settings_set(uint64_t settings)
       g_settings.video.refresh_rate = refresh_rate;
 
    if (settings & (1ULL << S_DEF_INFO_DEBUG_MSG))
-      g_extern.lifecycle_mode_state &= ~(1ULL << MODE_FPS_DRAW);
-
-   if (settings & (1ULL << S_DEF_INFO_MSG))
-      g_extern.lifecycle_mode_state |= (1ULL << MODE_INFO_DRAW);
+      g_settings.fps_show = false;
 }

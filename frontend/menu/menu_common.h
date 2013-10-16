@@ -131,6 +131,7 @@ typedef enum
    RGUI_SAVESTATE_DIR_PATH,
    RGUI_SAVEFILE_DIR_PATH,
    RGUI_LIBRETRO_DIR_PATH,
+   RGUI_LIBRETRO_INFO_DIR_PATH,
    RGUI_CONFIG_DIR_PATH,
 #ifdef HAVE_OVERLAY
    RGUI_OVERLAY_DIR_PATH,
@@ -353,6 +354,8 @@ void menu_ticker_line(char *buf, size_t len, unsigned tick, const char *str, boo
 
 void menu_resolve_libretro_names(rgui_list_t *list, const char *dir);
 void menu_resolve_supported_cores(rgui_handle_t *rgui);
+
+void menu_init_core_info(rgui_handle_t *rgui);
 
 void load_menu_game_prepare(void);
 bool load_menu_game(void);

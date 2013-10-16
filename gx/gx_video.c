@@ -92,6 +92,8 @@ static void retrace_callback(u32 retrace_count)
 
 void gx_set_video_mode(unsigned fbWidth, unsigned lines)
 {
+   u32 level;
+   _CPU_ISR_Disable(level);
 #ifdef GX_OPTS
    struct __gx_regdef *__gx = (struct __gx_regdef*)__gxregs;
 #endif
@@ -272,6 +274,7 @@ void gx_set_video_mode(unsigned fbWidth, unsigned lines)
    }
 
    g_current_framebuf = 0;
+   _CPU_ISR_Restore(level);
 }
 
 const char *gx_get_video_mode(void)
@@ -879,7 +882,6 @@ static bool gx_frame(void *data, const void *frame,
    struct __gx_regdef *__gx = (struct __gx_regdef*)__gxregs;
 #endif
    u8 clear_efb = GX_FALSE;
-   uint64_t lifecycle_mode_state = g_extern.lifecycle_mode_state;
 
    (void)data;
 
@@ -944,7 +946,7 @@ static bool gx_frame(void *data, const void *frame,
    }
 
    char fps_txt[128], fps_text_buf[128];
-   bool fps_draw = lifecycle_mode_state & (1ULL << MODE_FPS_DRAW);
+   bool fps_draw = g_settings.fps_show;
    gfx_get_fps(fps_txt, sizeof(fps_txt), fps_draw ? fps_text_buf : NULL, sizeof(fps_text_buf));
 
    if (fps_draw)
@@ -953,7 +955,7 @@ static bool gx_frame(void *data, const void *frame,
       unsigned x = 15;
       unsigned y = 35;
 
-      gx_blit_line(x, y, fps_txt);
+      gx_blit_line(x, y, fps_text_buf);
       y += FONT_HEIGHT * (gx->double_strike ? 1 : 2);
       snprintf(mem1_txt, sizeof(mem1_txt), "MEM1: %8d / %8d", SYSMEM1_SIZE - SYS_GetArena1Size(), SYSMEM1_SIZE);
       gx_blit_line(x, y, mem1_txt);

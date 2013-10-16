@@ -1,6 +1,8 @@
 package org.retroarch.browser;
 
 import org.retroarch.R;
+import org.retroarch.browser.preferences.util.ConfigFile;
+import org.retroarch.browser.preferences.util.UserPreferences;
 
 import java.io.*;
 
@@ -13,43 +15,41 @@ import android.view.*;
 
 // JELLY_BEAN_MR1 = 17
 
-public final class CoreSelection extends Activity implements
-		AdapterView.OnItemClickListener {
+public final class CoreSelection extends ListActivity {
 	private IconAdapter<ModuleWrapper> adapter;
-	static private final String TAG = "CoreSelection";
+	private static final String TAG = "CoreSelection";
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		ConfigFile core_config;
 		super.onCreate(savedInstanceState);
 
-		core_config = new ConfigFile();
+		ConfigFile core_config = new ConfigFile();
 		try {
 			core_config.append(getAssets().open("libretro_cores.cfg"));
 		} catch (IOException e) {
 			Log.e(TAG, "Failed to load libretro_cores.cfg from assets.");
 		}
 
-		String cpuInfo = MainMenuActivity.readCPUInfo();
-		boolean cpuIsNeon = cpuInfo.contains("neon");
+		final String cpuInfo = UserPreferences.readCPUInfo();
+		final boolean cpuIsNeon = cpuInfo.contains("neon");
 
+		// Setup the layout
 		setContentView(R.layout.line_list);
 
 		// Setup the list
 		adapter = new IconAdapter<ModuleWrapper>(this, R.layout.line_list_item);
-		ListView list = (ListView) findViewById(R.id.list);
-		list.setAdapter(adapter);
-		list.setOnItemClickListener(this);
+		setListAdapter(adapter);
 
+		// Set the activity title.
 		setTitle(R.string.select_libretro_core);
 
 		// Populate the list
-		final String modulePath = MainMenuActivity.getInstance()
-				.getApplicationInfo().nativeLibraryDir;
+		final String modulePath = getApplicationInfo().nativeLibraryDir;
 		final File[] libs = new File(modulePath).listFiles();
 		for (final File lib : libs) {
 			String libName = lib.getName();
 
+			Log.i(TAG, "Libretro core: " + libName);
 			// Never append a NEON lib if we don't have NEON.
 			if (libName.contains("neon") && !cpuIsNeon)
 				continue;
@@ -87,11 +87,10 @@ public final class CoreSelection extends Activity implements
 	}
 
 	@Override
-	public void onItemClick(AdapterView<?> aListView, View aView,
-			int aPosition, long aID) {
-		final ModuleWrapper item = adapter.getItem(aPosition);
+	public void onListItemClick(ListView listView, View view, int position, long id) {
+		final ModuleWrapper item = adapter.getItem(position);
 		MainMenuActivity.getInstance().setModule(item.file.getAbsolutePath(), item.getText());
-		MainMenuActivity.getInstance().updateConfigFile();
+		UserPreferences.updateConfigFile(this);
 		finish();
 	}
 }

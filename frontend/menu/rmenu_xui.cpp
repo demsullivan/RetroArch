@@ -47,7 +47,6 @@ enum
 {
    INGAME_MENU_REWIND_ENABLED = 0,
    INGAME_MENU_REWIND_GRANULARITY,
-   SETTING_EMU_SHOW_INFO_MSG,
    SETTING_EMU_SHOW_DEBUG_INFO_MSG,
 };
 
@@ -396,10 +395,8 @@ static void init_menulist(unsigned menu_id)
          XuiListInsertItems(m_menulist, INGAME_MENU_REWIND_GRANULARITY, 1);
          XuiListSetText(m_menulist, INGAME_MENU_REWIND_GRANULARITY, strw_buffer);
 
-         XuiListInsertItems(m_menulist, SETTING_EMU_SHOW_INFO_MSG, 1);
-         XuiListSetText(m_menulist, SETTING_EMU_SHOW_INFO_MSG, (g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW)) ? L"Info Messages: ON" : L"Info Messages: OFF");
          XuiListInsertItems(m_menulist, SETTING_EMU_SHOW_DEBUG_INFO_MSG, 1);
-         XuiListSetText(m_menulist, SETTING_EMU_SHOW_DEBUG_INFO_MSG, (g_extern.lifecycle_mode_state & (1ULL << MODE_FPS_DRAW)) ? L"Debug Info Messages: ON" : L"Debug Info messages: OFF");
+         XuiListSetText(m_menulist, SETTING_EMU_SHOW_DEBUG_INFO_MSG, (g_settings.fps_show) ? L"Show Framerate: ON" : L"Show Framerate: OFF");
          break;
       case INGAME_MENU_MAIN_MODE:
          XuiListInsertItems(m_menulist, INGAME_MENU_CHANGE_LIBRETRO_CORE, 1);
@@ -704,27 +701,9 @@ HRESULT CRetroArchSettings::OnControlNavigate(XUIMessageControlNavigate *pContro
          menu_settings_create_menu_item_label_w(strw_buffer, S_LBL_REWIND_GRANULARITY, sizeof(strw_buffer));
          XuiListSetText(m_menulist, INGAME_MENU_REWIND_GRANULARITY, strw_buffer);
          break;
-      case SETTING_EMU_SHOW_INFO_MSG:
-         if (action == RGUI_ACTION_LEFT)
-         {
-            if (g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW))
-               g_extern.lifecycle_mode_state &= ~(1ULL << MODE_INFO_DRAW);
-            else
-               g_extern.lifecycle_mode_state |= (1ULL << MODE_INFO_DRAW);
-            XuiListSetText(m_menulist, SETTING_EMU_SHOW_INFO_MSG, (g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW)) ? L"Info messages: ON" : L"Info messages: OFF");
-         }
-         else if (action == RGUI_ACTION_RIGHT || action == RGUI_ACTION_OK)
-         {
-            if (g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW))
-               g_extern.lifecycle_mode_state &= ~(1ULL << MODE_INFO_DRAW);
-            else
-               g_extern.lifecycle_mode_state |= (1ULL << MODE_INFO_DRAW);
-            XuiListSetText(m_menulist, SETTING_EMU_SHOW_INFO_MSG, (g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW)) ? L"Info messages: ON" : L"Info messages: OFF");
-         }
-         break;
       case SETTING_EMU_SHOW_DEBUG_INFO_MSG:
          menu_set_settings(RGUI_SETTINGS_DEBUG_TEXT, action);
-         XuiListSetText(m_menulist, SETTING_EMU_SHOW_DEBUG_INFO_MSG, (g_extern.lifecycle_mode_state & (1ULL << MODE_FPS_DRAW)) ? L"Debug Info messages: ON" : L"Debug Info messages: OFF");
+         XuiListSetText(m_menulist, SETTING_EMU_SHOW_DEBUG_INFO_MSG, g_settings.fps_show ? L"Show Framerate: ON" : L"Show Framerate: OFF");
          break;
       default:
          break;

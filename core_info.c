@@ -48,22 +48,37 @@ core_info_list_t *core_info_list_new(const char *modules_path)
 
    for (size_t i = 0; i < contents->size; i++)
    {
-      char info_path[PATH_MAX];
+      char info_path_base[PATH_MAX], info_path[PATH_MAX];
       core_info[i].path = strdup(contents->elems[i].data);
+
       if (!core_info[i].path)
          break;
 
+      fill_pathname_base(info_path_base, contents->elems[i].data, sizeof(info_path_base));
+      path_remove_extension(info_path_base);
+
 #if defined(RARCH_MOBILE) || defined(RARCH_CONSOLE)
-      // Libs are deployed with a suffix (*_ios.dylib, *_qnx.so, etc).
-      char buffer[PATH_MAX];
-      strlcpy(buffer, contents->elems[i].data, sizeof(buffer));
-      char *substr = strrchr(buffer, '_');
+      // Android libs are deployed with a prefix 'lib' (libretro_*.so, etc)
+      // Non-Android Libs (mobile/console) are deployed with a system name suffix (*_ios.dylib, *_qnx.so, etc).
+#ifdef ANDROID
+      size_t prefix_len = strlen("libretro_");
+      char *substr = strstr(info_path_base, "libretro_");
+      if (substr && substr == info_path_base)
+         memmove(info_path_base, info_path_base + prefix_len, strlen(info_path_base) + 1 - prefix_len);
+#else
+      char *substr = strrchr(info_path_base, '_');
       if (substr)
          *substr = '\0';
-      fill_pathname(info_path, buffer, ".info", sizeof(info_path));
-#else
-      fill_pathname(info_path, core_info[i].path, ".info", sizeof(info_path));
 #endif
+#endif
+
+#ifdef ANDROID
+      strlcat(info_path_base, "_libretro", sizeof(info_path_base));
+#endif
+      strlcat(info_path_base, ".info", sizeof(info_path_base));
+
+      fill_pathname_join(info_path, (*g_settings.libretro_info_path) ? g_settings.libretro_info_path : modules_path,
+            info_path_base, sizeof(info_path));
 
       core_info[i].data = config_file_new(info_path);
 
@@ -132,6 +147,14 @@ void core_info_list_free(core_info_list_t *core_info_list)
    free(core_info_list->all_ext);
    free(core_info_list->list);
    free(core_info_list);
+}
+
+size_t core_info_list_num_info_files(core_info_list_t *core_info_list)
+{
+   size_t num = 0;
+   for (size_t i = 0; i < core_info_list->count; i++)
+      num += !!core_info_list->list[i].data;
+   return num;
 }
 
 bool core_info_list_get_display_name(core_info_list_t *core_info_list, const char *path, char *buf, size_t size)

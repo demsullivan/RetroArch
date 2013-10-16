@@ -216,8 +216,7 @@ void load_menu_game_prepare(void)
 {
    if (*g_extern.fullpath || rgui->load_no_rom)
    {
-      if (*g_extern.fullpath &&
-            g_extern.lifecycle_mode_state & (1ULL << MODE_INFO_DRAW))
+      if (*g_extern.fullpath)
       {
          char tmp[PATH_MAX];
          char str[PATH_MAX];
@@ -884,3 +883,12 @@ void menu_resolve_supported_cores(rgui_handle_t *rgui)
 
    rgui_list_sort_on_alt(rgui->selection_buf);
 }
+
+void menu_init_core_info(rgui_handle_t *rgui)
+{
+   core_info_list_free(rgui->core_info);
+   rgui->core_info = NULL;
+   if (*rgui->libretro_dir)
+      rgui->core_info = core_info_list_new(rgui->libretro_dir);
+}
+
