@@ -126,6 +126,13 @@
 @end
 
 /*********************************************/
+/* RACoreOptionsMenu                         */
+/* Menu object that allows editing of        */
+/* options specific to the running core.     */
+/*********************************************/
+@interface RACoreOptionsMenu : RAMenuBase @end
+
+/*********************************************/
 /* RAMenuItemCoreList                        */
 /* Menu item that handles display and        */
 /* selection of an item in RAMenuCoreList.   */

@@ -601,6 +601,9 @@ static const void* const associated_core_key = &associated_core_key;
             ^{
                [weakSelf.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithGroup:i] animated:YES];
             }]];
+      
+      [settings addObject:[RAMenuItemBasic itemWithDescription:@"Core Options"
+         action:^{ [weakSelf.navigationController pushViewController:[RACoreOptionsMenu new] animated:YES]; }]];
    }
    
    return self;
@@ -641,6 +644,37 @@ static const void* const associated_core_key = &associated_core_key;
 {
    if (self.pathToSave)
       setting_data_save_config_path(self.pathToSave.UTF8String);
+}
+
+@end
+
+/*********************************************/
+/* RACoreOptionsMenu                         */
+/* Menu object that allows editing of        */
+/* options specific to the running core.     */
+/*********************************************/
+@implementation RACoreOptionsMenu
+
+- (id)init
+{
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
+   {
+      core_option_manager_t* options = g_extern.system.core_options;
+   
+      if (options)
+      {
+         NSMutableArray* section = [NSMutableArray arrayWithObject:@""];
+      
+         for (int i = 0; i != core_option_size(options); i ++)
+         {
+            [section addObject:[RAMenuItemBasic itemWithDescription:@(core_option_get_desc(options, i)) action:nil]];
+         }
+         
+         [self.sections addObject:section];
+      }
+   }
+   
+   return self;
 }
 
 @end
