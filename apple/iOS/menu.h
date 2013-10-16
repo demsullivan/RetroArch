@@ -108,12 +108,14 @@
 @end
 
 /*********************************************/
-/* RAFrontendSettingsMenu                    */
+/* RASettingsGroupMenu                       */
 /* Menu object that displays and allows      */
-/* editing of cocoa frontend related         */
-/* settings.                                 */
+/* editing of the a group of                 */
+/* rarch_setting_t structures.               */
 /*********************************************/
-@interface RAFrontendSettingsMenu : RAMenuBase @end
+@interface RASettingsGroupMenu : RAMenuBase
+- (id)initWithGroup:(const rarch_setting_t*)settings;
+@end
 
 /*********************************************/
 /* RACoreSettingsMenu                        */
@@ -124,6 +126,14 @@
 @property (nonatomic) NSString* core;
 - (id)initWithCore:(NSString*)core;
 @end
+
+/*********************************************/
+/* RAFrontendSettingsMenu                    */
+/* Menu object that displays and allows      */
+/* editing of cocoa frontend related         */
+/* settings.                                 */
+/*********************************************/
+@interface RAFrontendSettingsMenu : RASettingsGroupMenu @end
 
 /*********************************************/
 /* RACoreOptionsMenu                         */

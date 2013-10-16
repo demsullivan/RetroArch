@@ -371,7 +371,7 @@
                detail:^{ return weakSelf.core ? apple_get_core_display_name(weakSelf.core) : @"Auto Detect"; }],
             [RAMenuItemBasic itemWithDescription:@"Load Game"                 action:^{ [weakSelf loadGame]; }],
             [RAMenuItemBasic itemWithDescription:@"Load Game (History)"       action:^{ [weakSelf loadHistory]; }],
-            [RAMenuItemBasic itemWithDescription:@"Settings"                  action:^{ [weakSelf showSettings]; }]
+            [RAMenuItemBasic itemWithDescription:@"Frontend Settings"         action:^{ [[RetroArch_iOS get] showSystemSettings]; }]
          ]
       ];
    }
@@ -410,11 +410,6 @@
 {
    NSString* history_path = [NSString stringWithFormat:@"%@/%s", RetroArch_iOS.get.systemDirectory, ".retroarch-game-history.txt"];
    [self.navigationController pushViewController:[[RAHistoryMenu alloc] initWithHistoryPath:history_path] animated:YES];
-}
-
-- (void)showSettings
-{
-   [self.navigationController pushViewController:[RAFrontendSettingsMenu new] animated:YES];
 }
 
 - (bool)directoryList:(id)list itemWasSelected:(RADirectoryItem*)path
@@ -471,32 +466,22 @@
 @end
 
 /*********************************************/
-/* RAFrontendSettingsMenu                    */
+/* RASettingsGroupMenu                       */
 /* Menu object that displays and allows      */
-/* editing of cocoa frontend related         */
-/* settings.                                 */
+/* editing of the a group of                 */
+/* rarch_setting_t structures.               */
 /*********************************************/
-static const void* const associated_core_key = &associated_core_key;
+@implementation RASettingsGroupMenu
 
-// TODO: Fix this ugliness!
-
-@interface RAFrontendSettingsMenu() <UIAlertViewDelegate> @end
-@implementation RAFrontendSettingsMenu
-
-- (id)init
+- (id)initWithGroup:(const rarch_setting_t*)group
 {
    if ((self = [super initWithStyle:UITableViewStyleGrouped]))
    {
-      RAFrontendSettingsMenu* __weak weakSelf = self;
-
-      self.title = @"Frontend Settings";
-
-      const rarch_setting_t* apple_get_frontend_settings();
-      const rarch_setting_t* frontend_setting_data = apple_get_frontend_settings();
+      self.title = @(group->name);
    
       NSMutableArray* settings = nil;
 
-      for (const rarch_setting_t* i = frontend_setting_data + 1; i->type != ST_END_GROUP; i ++)
+      for (const rarch_setting_t* i = group + 1; i->type != ST_END_GROUP; i ++)
       {
          if (i->type == ST_SUB_GROUP)
             settings = [NSMutableArray arrayWithObjects:@(i->name), nil];
@@ -514,60 +499,13 @@ static const void* const associated_core_key = &associated_core_key;
          else if (i->type == ST_BIND)
             [settings addObject:[RAMenuItemBindSetting itemForSetting:i]];
       }
-
-   
-      NSMutableArray* cores = [NSMutableArray arrayWithObject:@"Cores"];
-      
-      [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config"
-         action: ^{ [weakSelf showCoreConfigFor:nil]; }]];
-
-      const core_info_list_t* core_list = apple_core_info_list_get();
-      for (int i = 0; i < core_list->count; i ++)
-         [cores addObject:[RAMenuItemBasic itemWithDescription:@(core_list->list[i].display_name)
-            association:apple_get_core_id(&core_list->list[i])
-            action: ^(id userdata) { [weakSelf showCoreConfigFor:userdata]; }
-            detail: ^(id userdata) { return apple_core_info_has_custom_config([userdata UTF8String]) ? @"[Custom]" : @"[Global]"; }]];
-      [self.sections addObject:cores];
    }
-   
+
    return self;
 }
 
-- (void)showCoreConfigFor:(NSString*)core
-{
-   if (core && !apple_core_info_has_custom_config(core.UTF8String))
-   {
-      UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"RetroArch"
-                                                      message:@"No custom configuration for this core exists, "
-                                                               "would you like to create one?"
-                                                     delegate:self
-                                            cancelButtonTitle:@"No"
-                                            otherButtonTitles:@"Yes", nil];
-      objc_setAssociatedObject(alert, associated_core_key, core, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-      [alert show];
-   }
-   else
-      [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
-}
-
-- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
-{
-   NSString* core_id = objc_getAssociatedObject(alertView, associated_core_key);
-   
-   if (buttonIndex == alertView.firstOtherButtonIndex && core_id)
-   {
-      char path[PATH_MAX];
-      apple_core_info_get_custom_config(core_id.UTF8String, path, sizeof(path));
-   
-      if (![[NSFileManager defaultManager] copyItemAtPath:apple_platform.globalConfigFile toPath:@(path) error:nil])
-         RARCH_WARN("Could not create custom config at %s", path);
-      [self.tableView reloadData];
-   }
-
-   [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core_id] animated:YES];
-}
-
 @end
+
 
 /*********************************************/
 /* RACoreSettingsMenu                        */
@@ -611,7 +549,7 @@ static const void* const associated_core_key = &associated_core_key;
          if (i->type == ST_GROUP)
             [settings addObject:[RAMenuItemBasic itemWithDescription:@(i->name) action:
             ^{
-               [weakSelf.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithGroup:i] animated:YES];
+               [weakSelf.navigationController pushViewController:[[RASettingsGroupMenu alloc] initWithGroup:i] animated:YES];
             }]];
       
       [settings addObject:[RAMenuItemBasic itemWithDescription:@"Core Options"
@@ -621,41 +559,97 @@ static const void* const associated_core_key = &associated_core_key;
    return self;
 }
 
-- (id)initWithGroup:(const rarch_setting_t*)group
+- (void)dealloc
 {
-   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
+   if (self.pathToSave)
+      setting_data_save_config_path(setting_data_get_list(), self.pathToSave.UTF8String);
+}
+
+@end
+
+/*********************************************/
+/* RAFrontendSettingsMenu                    */
+/* Menu object that displays and allows      */
+/* editing of cocoa frontend related         */
+/* settings.                                 */
+/*********************************************/
+static const void* const associated_core_key = &associated_core_key;
+
+@interface RAFrontendSettingsMenu() <UIAlertViewDelegate> @end
+@implementation RAFrontendSettingsMenu
+
+- (id)init
+{
+   const rarch_setting_t* apple_get_frontend_settings();
+   const rarch_setting_t* frontend_setting_data = apple_get_frontend_settings();
+
+   if ((self = [super initWithGroup:frontend_setting_data]))
    {
-      self.title = @(group->name);
-   
-      NSMutableArray* settings = nil;
+      RAFrontendSettingsMenu* __weak weakSelf = self;
 
-      for (const rarch_setting_t* i = group + 1; i->type != ST_END_GROUP; i ++)
-      {
-         if (i->type == ST_SUB_GROUP)
-            settings = [NSMutableArray arrayWithObjects:@(i->name), nil];
-         else if (i->type == ST_END_SUB_GROUP)
-         {
-            if (settings.count)
-               [self.sections addObject:settings];
-         }
-         else if (i->type == ST_BOOL)
-            [settings addObject:[RAMenuItemBooleanSetting itemForSetting:i]];
-         else if (i->type == ST_INT || i->type == ST_UINT || i->type == ST_FLOAT || i->type == ST_STRING)
-            [settings addObject:[RAMenuItemGeneralSetting itemForSetting:i]];
-         else if (i->type == ST_PATH)
-            [settings addObject:[RAMenuItemPathSetting itemForSetting:i]];
-         else if (i->type == ST_BIND)
-            [settings addObject:[RAMenuItemBindSetting itemForSetting:i]];
-      }
+      self.title = @"Frontend Settings";
+      
+      RAMenuItemBasic* diagnostic_item = [RAMenuItemBasic itemWithDescription:@"Diagnostic Log"
+         action:^{ [weakSelf.navigationController pushViewController:[RALogView new] animated:YES]; }];
+      [self.sections insertObject:@[@"", diagnostic_item] atIndex:0];
+  
+      // Core items to load core settings
+      NSMutableArray* cores = [NSMutableArray arrayWithObject:@"Cores"];
+      
+      [cores addObject:[RAMenuItemBasic itemWithDescription:@"Global Core Config"
+         action: ^{ [weakSelf showCoreConfigFor:nil]; }]];
+
+      const core_info_list_t* core_list = apple_core_info_list_get();
+      for (int i = 0; i < core_list->count; i ++)
+         [cores addObject:[RAMenuItemBasic itemWithDescription:@(core_list->list[i].display_name)
+            association:apple_get_core_id(&core_list->list[i])
+            action: ^(id userdata) { [weakSelf showCoreConfigFor:userdata]; }
+            detail: ^(id userdata) { return apple_core_info_has_custom_config([userdata UTF8String]) ? @"[Custom]" : @"[Global]"; }]];
+      [self.sections addObject:cores];
    }
-
+   
    return self;
 }
 
 - (void)dealloc
 {
-   if (self.pathToSave)
-      setting_data_save_config_path(setting_data_get_list(), self.pathToSave.UTF8String);
+   const rarch_setting_t* apple_get_frontend_settings();
+   setting_data_save_config_path(apple_get_frontend_settings(), [RetroArch_iOS get].systemConfigPath.UTF8String);
+   [[RetroArch_iOS get] refreshSystemConfig];
+}
+
+- (void)showCoreConfigFor:(NSString*)core
+{
+   if (core && !apple_core_info_has_custom_config(core.UTF8String))
+   {
+      UIAlertView* alert = [[UIAlertView alloc] initWithTitle:@"RetroArch"
+                                                      message:@"No custom configuration for this core exists, "
+                                                               "would you like to create one?"
+                                                     delegate:self
+                                            cancelButtonTitle:@"No"
+                                            otherButtonTitles:@"Yes", nil];
+      objc_setAssociatedObject(alert, associated_core_key, core, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+      [alert show];
+   }
+   else
+      [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core] animated:YES];
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+   NSString* core_id = objc_getAssociatedObject(alertView, associated_core_key);
+   
+   if (buttonIndex == alertView.firstOtherButtonIndex && core_id)
+   {
+      char path[PATH_MAX];
+      apple_core_info_get_custom_config(core_id.UTF8String, path, sizeof(path));
+   
+      if (![[NSFileManager defaultManager] copyItemAtPath:apple_platform.globalConfigFile toPath:@(path) error:nil])
+         RARCH_WARN("Could not create custom config at %s", path);
+      [self.tableView reloadData];
+   }
+
+   [self.navigationController pushViewController:[[RACoreSettingsMenu alloc] initWithCore:core_id] animated:YES];
 }
 
 @end
