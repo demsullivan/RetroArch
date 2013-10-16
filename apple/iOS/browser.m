@@ -155,8 +155,13 @@ static void file_action(enum file_action action, NSString* source, NSString* tar
    }
    else
       apple_display_alert([NSString stringWithFormat:@"Browsed path is not a directory: %@", _path], 0);
-   
-   [self.tableView reloadData];
+
+   [self.tableView scrollRectToVisible:CGRectMake(0, 0, 1, 1) animated:NO];
+   [UIView transitionWithView:self.tableView duration:.25f options:UIViewAnimationOptionTransitionCrossDissolve
+      animations:
+      ^{
+         [self.tableView reloadData];
+      } completion:nil];
 }
 
 - (void)gotoParent
