@@ -216,12 +216,9 @@
    char buffer[256];
    
    field.delegate = self.formatter;
-   field.text = @(setting_data_get_string_representation(self.setting, buffer, sizeof(buffer)));
+   field.placeholder = @(setting_data_get_string_representation(self.setting, buffer, sizeof(buffer)));
 
    [alertView show];
-  
-   field.selectedTextRange = [field textRangeFromPosition:field.beginningOfDocument toPosition:field.endOfDocument];
-
 }
 
 - (void)alertView:(UIAlertView*)alertView clickedButtonAtIndex:(NSInteger)buttonIndex
@@ -386,13 +383,14 @@
    RAMenuCoreList* list = [[RAMenuCoreList alloc] initWithPath:path
       action: ^(NSString* core)
       {
-         weakSelf.core = core;
-         [weakSelf.tableView reloadData];
-         
-         if (!path)
-            [weakSelf.navigationController popViewControllerAnimated:YES];
-         else
+         if (path)
             apple_run_core(weakSelf.core, path.UTF8String);
+         else
+         {
+            weakSelf.core = core;
+            [weakSelf.tableView reloadData];
+            [weakSelf.navigationController popViewControllerAnimated:YES];
+         }
       }];
    [self.navigationController pushViewController:list animated:YES];
 }
@@ -891,6 +889,7 @@ static const void* const associated_core_key = &associated_core_key;
       
       UISegmentedControl* accessory = [[UISegmentedControl alloc] initWithItems:@[@"0", @"1", @"2", @"3", @"4", @"5", @"6", @"7", @"8", @"9"]];
       [accessory addTarget:self action:@selector(changed:) forControlEvents:UIControlEventValueChanged];
+      accessory.segmentedControlStyle = UISegmentedControlStyleBar;
       result.accessoryView = accessory;
    }
    
