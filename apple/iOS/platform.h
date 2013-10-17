@@ -21,8 +21,6 @@
 
 @interface RAGameView : UIViewController
 + (RAGameView*)get;
-- (void)openPauseMenu;
-- (void)closePauseMenu;
 - (void)iOS7SetiCadeMode:(bool)on;
 @end
 
@@ -35,6 +33,7 @@
 
 - (void)refreshSystemConfig;
 
+- (IBAction)showSettings;
 - (IBAction)showSystemSettings;
 
 @property (nonatomic) NSString* configDirectory;    // e.g. /var/mobile/Documents/.RetroArch

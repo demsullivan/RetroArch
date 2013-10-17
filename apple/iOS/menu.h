@@ -180,4 +180,18 @@
 - (id)initWithFile:(const char*)path;
 @end
 
+/*********************************************/
+/* RAMenuItemStateSelect                     */
+/* Menu item that allows save state slots    */
+/* 0-9 to be selected.                       */
+/*********************************************/
+@interface RAMenuItemStateSelect : NSObject<RAMenuItemBase> @end
+
+/*********************************************/
+/* RAPauseMenu                               */
+/* Menu which provides options for the       */
+/* currently running game.                   */
+/*********************************************/
+@interface RAPauseMenu : RAMenuBase @end
+
 #endif

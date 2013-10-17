@@ -857,3 +857,85 @@ static const void* const associated_core_key = &associated_core_key;
 }
 
 @end
+
+/*********************************************/
+/* RAMenuItemStateSelect                     */
+/* Menu item that allows save state slots    */
+/* 0-9 to be selected.                       */
+/*********************************************/
+@implementation RAMenuItemStateSelect
+
+- (UITableViewCell*)cellForTableView:(UITableView*)tableView
+{
+   static NSString* const cell_id = @"state_slot_setting";
+
+   UITableViewCell* result = [tableView dequeueReusableCellWithIdentifier:cell_id];
+   if (!result)
+   {
+      result = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:cell_id];
+      result.selectionStyle = UITableViewCellSelectionStyleNone;
+
+      result.textLabel.text = @"Slot";
+      
+      UISegmentedControl* accessory = [[UISegmentedControl alloc] initWithItems:@[@"0", @"1", @"2", @"3", @"4", @"5", @"6", @"7", @"8", @"9"]];
+      [accessory addTarget:self action:@selector(changed:) forControlEvents:UIControlEventValueChanged];
+      result.accessoryView = accessory;
+   }
+   
+   [(id)result.accessoryView setSelectedSegmentIndex:(g_extern.state_slot < 10) ? g_extern.state_slot : -1];
+
+   return result;
+}
+
+- (void)changed:(UISegmentedControl*)sender
+{
+   g_extern.state_slot = sender.selectedSegmentIndex;
+}
+
+- (void)wasSelectedOnTableView:(UITableView *)tableView ofController:(UIViewController *)controller
+{
+
+}
+
+@end
+
+/*********************************************/
+/* RAPauseMenu                               */
+/* Menu which provides options for the       */
+/* currently running game.                   */
+/*********************************************/
+@implementation RAPauseMenu
+
+- (id)init
+{
+   if ((self = [super initWithStyle:UITableViewStyleGrouped]))
+   {
+      RAPauseMenu* __weak weakSelf = self;
+
+      [self.sections addObject:@[@"Actions",
+         [RAMenuItemBasic itemWithDescription:@"Reset Game" action:^{ [weakSelf performBasicAction:RESET]; }],
+         [RAMenuItemBasic itemWithDescription:@"Close Game" action:^{ [weakSelf performBasicAction:QUIT]; }]
+      ]];
+
+      [self.sections addObject:@[@"States",
+         [RAMenuItemStateSelect new],
+         [RAMenuItemBasic itemWithDescription:@"Load State" action:^{ [weakSelf performBasicAction:LOAD_STATE]; }],
+         [RAMenuItemBasic itemWithDescription:@"Save State" action:^{ [weakSelf performBasicAction:SAVE_STATE]; }]
+      ]];
+   
+      [self.sections addObject:@[@"Settings",
+         [RAMenuItemBasic itemWithDescription:@"System Config" action:^{ [[RetroArch_iOS get] showSystemSettings]; }],
+         [RAMenuItemBasic itemWithDescription:@"Core Config"   action:^{ [[RetroArch_iOS get] showSettings]; }]
+      ]];
+   }
+   
+   return self;
+}
+
+- (void)performBasicAction:(enum basic_event_t)action
+{
+   [self.navigationController popViewControllerAnimated:(action != QUIT)];
+   apple_frontend_post_event(apple_event_basic_command, action);
+}
+
+@end

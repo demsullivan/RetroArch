@@ -280,6 +280,8 @@ static void handle_touch_event(NSArray* touches)
 {
    apple_input_reset_icade_buttons();
    _isGameTop = [viewController isKindOfClass:[RAGameView class]];
+   g_extern.is_paused = !_isGameTop;
+
 
    [[UIApplication sharedApplication] setStatusBarHidden:_isGameTop withAnimation:UIStatusBarAnimationNone];
    [[UIApplication sharedApplication] setIdleTimerDisabled:_isGameTop];
@@ -366,43 +368,7 @@ static void handle_touch_event(NSArray* touches)
 #pragma mark PAUSE MENU
 - (IBAction)showPauseMenu:(id)sender
 {
-   if (apple_is_running && !apple_is_paused && _isGameTop)
-   {
-      apple_is_paused = true;
-      [[RAGameView get] openPauseMenu];
-      
-      btpad_set_inquiry_state(true);
-   }
-}
-
-- (IBAction)basicEvent:(id)sender
-{
-   if (apple_is_running)
-      apple_frontend_post_event(&apple_event_basic_command, ((UIView*)sender).tag);
-   
-   [self closePauseMenu:sender];
-}
-
-- (IBAction)chooseState:(id)sender
-{
-   if (apple_is_running)
-      apple_frontend_post_event(apple_event_set_state_slot, (void*)((UISegmentedControl*)sender).selectedSegmentIndex);
-}
-
-- (IBAction)showRGUI:(id)sender
-{
-   if (apple_is_running)
-      apple_frontend_post_event(apple_event_show_rgui, 0);
-   
-   [self closePauseMenu:sender];
-}
-
-- (IBAction)closePauseMenu:(id)sender
-{
-   [[RAGameView get] closePauseMenu];
-   apple_is_paused = false;
-   
-   btpad_set_inquiry_state(false);
+   [self pushViewController:[RAPauseMenu new] animated:YES];
 }
 
 - (IBAction)showSettings

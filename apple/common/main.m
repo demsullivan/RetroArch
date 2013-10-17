@@ -100,7 +100,6 @@ void apple_exit_stasis(bool reload_config)
 
 #pragma mark EMULATION
 static pthread_t apple_retro_thread;
-bool apple_is_paused;
 bool apple_is_running;
 bool apple_use_tv_mode;
 NSString* apple_core;
