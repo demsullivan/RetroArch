@@ -308,8 +308,6 @@ struct global fake_extern;
 
 void setting_data_load_current()
 {
-   // TODO: Load defaults
-
    memcpy(&fake_settings, &g_settings, sizeof(struct settings));
    memcpy(&fake_extern, &g_extern, sizeof(struct global));
 }

@@ -321,7 +321,7 @@ static void handle_touch_event(NSArray* touches)
 - (void)loadingCore:(NSString*)core withFile:(const char*)file
 {
    [self pushViewController:RAGameView.get animated:NO];
-//TODO   [RASettingsList refreshModuleConfig:core];
+   (void)[[RACoreSettingsMenu alloc] initWithCore:core];
 
    btpad_set_inquiry_state(false);
 

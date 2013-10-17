@@ -562,7 +562,19 @@
 - (void)dealloc
 {
    if (self.pathToSave)
-      setting_data_save_config_path(setting_data_get_list(), self.pathToSave.UTF8String);
+   {
+      config_file_t* config = config_file_new(self.pathToSave.UTF8String);
+      if (!config)
+         config = config_file_new(0);
+      
+      setting_data_save_config(setting_data_get_list(), config);
+      
+      config_set_string(config, "system_directory", [[RetroArch_iOS get].systemDirectory UTF8String]);
+      config_set_string(config, "savefile_directory", [[RetroArch_iOS get].systemDirectory UTF8String]);
+      config_set_string(config, "savestate_directory", [[RetroArch_iOS get].systemDirectory UTF8String]);
+      config_file_write(config, self.pathToSave.UTF8String);
+      config_file_free(config);
+   }
 }
 
 @end
